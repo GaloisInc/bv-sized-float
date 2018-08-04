@@ -1,6 +1,7 @@
 name:                bv-sized-float
-version:             0.1.0.0
--- synopsis:
+version:             0.1.0
+category:            Bit Vectors
+synopsis:            Floating point operations and expressions for bv-sized
 -- description:
 homepage:            https://github.com/benjaminselfridge/bv-sized-float#readme
 license:             BSD3
@@ -8,13 +9,17 @@ license-file:        LICENSE
 author:              Ben Selfridge
 maintainer:          benselfridge@galois.com
 copyright:           March 2018
-category:            RISC-V
 build-type:          Simple
 cabal-version:       >=1.10
 extra-source-files:  README.md
 
-executable bv-sized-float
-  hs-source-dirs:      src
-  main-is:             Main.hs
-  default-language:    Haskell2010
+library
+  exposed-modules:     Data.BitVector.Sized.Float
   build-depends:       base >= 4.7 && < 5
+                     , bv-sized >= 0.4.0 && < 0.5
+                     , containers >= 0.5.10 && < 0.6
+                     , parameterized-utils
+                     , softfloat-hs
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  ghc-options:         -Wall
