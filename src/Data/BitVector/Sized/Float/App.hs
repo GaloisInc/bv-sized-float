@@ -24,37 +24,17 @@ module Data.BitVector.Sized.Float.App
   , RM
   -- , evalBVFloatApp
   , evalBVFloatAppM
+  , BVFloatExpr(..)
   -- -- * Smart constructors
-  -- , BVFloatExpr(..)
+  , ui32ToF32E
   -- -- * Integer to float conversions
   ) where
 
--- import Data.Parameterized
--- import Data.Parameterized.TH.GADT
 import Data.Bits
 import Data.BitVector.Sized
 import Data.BitVector.Sized.Float
 import GHC.TypeLits
 import SoftFloat
-
--- extern THREAD_LOCAL uint_fast8_t softfloat_roundingMode;
--- enum {
---     softfloat_round_near_even   = 0,
---     softfloat_round_minMag      = 1,
---     softfloat_round_min         = 2,
---     softfloat_round_max         = 3,
---     softfloat_round_near_maxMag = 4,
---     softfloat_round_odd         = 6
--- };
-
--- extern THREAD_LOCAL uint_fast8_t softfloat_exceptionFlags;
--- enum {
---     softfloat_flag_inexact   =  1,
---     softfloat_flag_underflow =  2,
---     softfloat_flag_overflow  =  4,
---     softfloat_flag_infinite  =  8,
---     softfloat_flag_invalid   = 16
--- };
 
 -- | Type synonym for rounding-mode expression
 type RM expr = expr 3
@@ -63,12 +43,6 @@ type RM expr = expr 3
 -- result of the given width and the resulting exceptions.
 data BVFloatApp (expr :: Nat -> *) (w :: Nat) where
   Ui32ToF32App :: !(RM expr) -> !(expr 32) -> BVFloatApp expr 37
-
--- -- | Evaluation of a floating point operation; we can get either the result or the
--- -- exceptions.
--- data BVFloatApp (expr :: Nat -> *) (w :: Nat) where
---   FloatResApp :: BVFloatOp expr w -> BVFloatApp expr w
---   ExceptionsApp :: BVFloatOp expr w -> BVFloatApp expr 5
 
 -- TODO: Fix SoftFloat's Enum instance
 bvToRM :: BitVector 3 -> RoundingMode
@@ -99,3 +73,9 @@ evalBVFloatAppM :: Monad m
                 -> BVFloatApp expr w
                 -> m (BitVector w)
 evalBVFloatAppM eval (Ui32ToF32App rmE xE) = cr <$> (bvUi32ToF32 <$> (bvToRM <$> eval rmE) <*> eval xE)
+
+class BVFloatExpr (expr :: Nat -> *) where
+  floatAppExpr :: BVFloatApp expr w -> expr w
+
+ui32ToF32E :: BVFloatExpr expr => RM expr -> expr 32 -> expr 37
+ui32ToF32E rmE e = floatAppExpr (Ui32ToF32App rmE e)
