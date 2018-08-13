@@ -25,6 +25,7 @@ module Data.BitVector.Sized.Float.App
   -- , evalBVFloatApp
   , evalBVFloatAppM
   , BVFloatExpr(..)
+  , getFRes
   -- -- * Smart constructors
   , ui32ToF32E
   -- -- * Integer to float conversions
@@ -32,6 +33,7 @@ module Data.BitVector.Sized.Float.App
 
 import Data.Bits
 import Data.BitVector.Sized
+import Data.BitVector.Sized.App
 import Data.BitVector.Sized.Float
 import GHC.TypeLits
 import SoftFloat
@@ -74,8 +76,11 @@ evalBVFloatAppM :: Monad m
                 -> m (BitVector w)
 evalBVFloatAppM eval (Ui32ToF32App rmE xE) = cr <$> (bvUi32ToF32 <$> (bvToRM <$> eval rmE) <*> eval xE)
 
-class BVFloatExpr (expr :: Nat -> *) where
+class BVExpr expr =>  BVFloatExpr (expr :: Nat -> *) where
   floatAppExpr :: BVFloatApp expr w -> expr w
 
 ui32ToF32E :: BVFloatExpr expr => RM expr -> expr 32 -> expr 37
 ui32ToF32E rmE e = floatAppExpr (Ui32ToF32App rmE e)
+
+getFRes :: BVFloatExpr expr => expr 37 -> (expr 32, expr 5)
+getFRes e = (extractE 0 e, extractE 32 e)
