@@ -82,5 +82,5 @@ class BVExpr expr =>  BVFloatExpr (expr :: Nat -> *) where
 ui32ToF32E :: BVFloatExpr expr => RM expr -> expr 32 -> expr 37
 ui32ToF32E rmE e = floatAppExpr (Ui32ToF32App rmE e)
 
-getFRes :: BVFloatExpr expr => expr 37 -> (expr 32, expr 5)
+getFRes :: (KnownNat w, BVFloatExpr expr) => expr (5 + w) -> (expr w, expr 5)
 getFRes e = (extractE 0 e, extractE 32 e)
