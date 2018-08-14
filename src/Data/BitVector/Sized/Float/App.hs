@@ -66,6 +66,7 @@ efToBV (ExceptionFlags ieFlag ufFlag ofFlag infFlag invFlag) =
   where toBV True = 1
         toBV False = 0
 
+-- | concatenate result into a single 'BitVector'.
 cr :: Result (BitVector w) -> BitVector (5 + w)
 cr (Result res flags) = efToBV flags `bvConcat` res
 
