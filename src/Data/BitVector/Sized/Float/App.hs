@@ -26,10 +26,22 @@ module Data.BitVector.Sized.Float.App
   , BVFloatExpr(..)
   , getFRes
   -- * Miscellaneous functions
-  , isNaN32
-  , isNaN64
+  -- ** 32-bit
+  , posZero32
+  , negZero32
   , canonicalNaN32
+  , posInfinity32
+  , negInfinity32
+  , isZero32
+  , isSubnormal32
+  -- ** 64-bit
+  , isNaN32
+  , f32Exp, f32Sig, f32Sgn
+  , isNaN64
   , canonicalNaN64
+  , posInfinity64
+  , negInfinity64
+  , f64Exp, f64Sig, f64Sgn
   -- * Smart constructors
   -- ** Integer to float
   , ui32ToF16E
@@ -156,29 +168,63 @@ i64ToF64E rmE e = floatAppExpr (I64ToF64App rmE e)
 
 -- Miscellaneous
 
+-- 32
 f32Exp :: BVExpr expr => expr 32 -> expr 8
 f32Exp e = extractE 23 e
 
 f32Sig :: BVExpr expr => expr 32 -> expr 23
 f32Sig e = extractE 0 e
 
+f32Sgn :: BVExpr expr => expr 32 -> expr 1
+f32Sgn e = extractE 31 e
+
+isNaN32 :: BVExpr expr => expr 32 -> expr 1
+isNaN32 e = (f32Exp e `eqE` litBV 0xFF) `andE` (notE (f32Sig e `eqE` litBV 0))
+
+isSubnormal32 :: BVExpr expr => expr 32 -> expr 1
+isSubnormal32 e = (litBV 0x0 `ltuE` f32Exp e) `andE`
+                  (f32Exp e `ltuE` litBV 0xff) `andE`
+                  (notE (isZero32 e))
+
+canonicalNaN32 :: BVExpr expr => expr 32
+canonicalNaN32 = litBV 0x7FC00000
+
+posZero32 :: BVExpr expr => expr 32
+posZero32 = litBV 0x00000000
+
+negZero32 :: BVExpr expr => expr 32
+negZero32 = litBV 0x80000000
+
+isZero32 :: BVExpr expr => expr 32 -> expr 1
+isZero32 e = (e `eqE` posZero32) `orE` (e `eqE` negZero32)
+
+posInfinity32 :: BVExpr expr => expr 32
+posInfinity32 = litBV 0x7F800000
+
+negInfinity32 :: BVExpr expr => expr 32
+negInfinity32 = litBV 0xFF800000
+
+-- 64
 f64Exp :: BVExpr expr => expr 64 -> expr 11
 f64Exp e = extractE 52 e
 
 f64Sig :: BVExpr expr => expr 64 -> expr 52
 f64Sig e = extractE 0 e
 
-isNaN32 :: BVExpr expr => expr 32 -> expr 1
-isNaN32 e = (f32Exp e `eqE` litBV 0xFF) `andE` (notE (f32Sig e `eqE` litBV 0))
-
-canonicalNaN32 :: BVExpr expr => expr 32
-canonicalNaN32 = litBV 0x7FC00000
+f64Sgn :: BVExpr expr => expr 64 -> expr 1
+f64Sgn e = extractE 63 e
 
 isNaN64 :: BVExpr expr => expr 64 -> expr 1
 isNaN64 e = (f64Exp e `eqE` litBV 0x7FF) `andE` (notE (f64Sig e `eqE` litBV 0))
 
 canonicalNaN64 :: BVExpr expr => expr 64
 canonicalNaN64 = litBV 0x7FF8000000000000
+
+posInfinity64 :: BVExpr expr => expr 64
+posInfinity64 = litBV 0x7FF0000000000000
+
+negInfinity64 :: BVExpr expr => expr 64
+negInfinity64 = litBV 0xFFF0000000000000
 
 getFRes :: (KnownNat w, BVExpr expr) => expr (5 + w) -> (expr w, expr 5)
 getFRes e = (extractE 0 e, extractE 32 e)
