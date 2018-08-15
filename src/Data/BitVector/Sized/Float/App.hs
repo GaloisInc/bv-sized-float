@@ -34,6 +34,8 @@ module Data.BitVector.Sized.Float.App
   , posInfinity32
   , negInfinity32
   , isNaN32
+  , isSNaN32
+  , isQNaN32
   , isZero32
   , isNormal32
   , isSubnormal32
@@ -45,6 +47,8 @@ module Data.BitVector.Sized.Float.App
   , posInfinity64
   , negInfinity64
   , isNaN64
+  , isSNaN64
+  , isQNaN64
   , isZero64
   , isNormal64
   , isSubnormal64
@@ -262,6 +266,12 @@ f32Sgn e = extractE 31 e
 isNaN32 :: BVExpr expr => expr 32 -> expr 1
 isNaN32 e = (f32Exp e `eqE` litBV 0xFF) `andE` (notE (f32Sig e `eqE` litBV 0))
 
+isSNaN32 :: BVExpr expr => expr 32 -> expr 1
+isSNaN32 e = isNaN32 e `andE` notE (extractE 22 e)
+
+isQNaN32 :: BVExpr expr => expr 32 -> expr 1
+isQNaN32 e = isNaN32 e `andE` extractE 22 e
+
 isSubnormal32 :: BVExpr expr => expr 32 -> expr 1
 isSubnormal32 e = (f32Exp e `eqE` litBV 0x0) `andE` (notE (isZero32 e))
 
@@ -298,6 +308,12 @@ f64Sgn e = extractE 63 e
 
 isNaN64 :: BVExpr expr => expr 64 -> expr 1
 isNaN64 e = (f64Exp e `eqE` litBV 0x7FF) `andE` (notE (f64Sig e `eqE` litBV 0))
+
+isSNaN64 :: BVExpr expr => expr 64 -> expr 1
+isSNaN64 e = isNaN64 e `andE` notE (extractE 51 e)
+
+isQNaN64 :: BVExpr expr => expr 64 -> expr 1
+isQNaN64 e = isNaN64 e `andE` extractE 51 e
 
 isSubnormal64 :: BVExpr expr => expr 64 -> expr 1
 isSubnormal64 e = (f64Exp e `eqE` litBV 0x0) `andE` (notE (isZero64 e))
