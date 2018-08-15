@@ -25,6 +25,11 @@ module Data.BitVector.Sized.Float.App
   , evalBVFloatAppM
   , BVFloatExpr(..)
   , getFRes
+  -- * Miscellaneous functions
+  , isNaN32
+  , isNaN64
+  , canonicalNaN32
+  , canonicalNaN64
   -- * Smart constructors
   -- ** Integer to float
   , ui32ToF16E
@@ -113,9 +118,6 @@ evalBVFloatAppM eval (I64ToF16App rmE xE) = cr <$> (bvI64ToF16 <$> (bvToRM <$> e
 evalBVFloatAppM eval (I64ToF32App rmE xE) = cr <$> (bvI64ToF32 <$> (bvToRM <$> eval rmE) <*> eval xE)
 evalBVFloatAppM eval (I64ToF64App rmE xE) = cr <$> (bvI64ToF64 <$> (bvToRM <$> eval rmE) <*> eval xE)
 
-getFRes :: (KnownNat w, BVFloatExpr expr) => expr (5 + w) -> (expr w, expr 5)
-getFRes e = (extractE 0 e, extractE 32 e)
-
 ui32ToF16E :: BVFloatExpr expr => RM expr -> expr 32 -> expr 21
 ui32ToF16E rmE e = floatAppExpr (Ui32ToF16App rmE e)
 
@@ -152,3 +154,31 @@ i64ToF32E rmE e = floatAppExpr (I64ToF32App rmE e)
 i64ToF64E :: BVFloatExpr expr => RM expr -> expr 64 -> expr 69
 i64ToF64E rmE e = floatAppExpr (I64ToF64App rmE e)
 
+-- Miscellaneous
+
+f32Exp :: BVExpr expr => expr 32 -> expr 8
+f32Exp e = extractE 23 e
+
+f32Sig :: BVExpr expr => expr 32 -> expr 23
+f32Sig e = extractE 0 e
+
+f64Exp :: BVExpr expr => expr 64 -> expr 11
+f64Exp e = extractE 52 e
+
+f64Sig :: BVExpr expr => expr 64 -> expr 52
+f64Sig e = extractE 0 e
+
+isNaN32 :: BVExpr expr => expr 32 -> expr 1
+isNaN32 e = (f32Exp e `eqE` litBV 0xFF) `andE` (notE (f32Sig e `eqE` litBV 0))
+
+canonicalNaN32 :: BVExpr expr => expr 32
+canonicalNaN32 = litBV 0x7FC00000
+
+isNaN64 :: BVExpr expr => expr 64 -> expr 1
+isNaN64 e = (f64Exp e `eqE` litBV 0x7FF) `andE` (notE (f64Sig e `eqE` litBV 0))
+
+canonicalNaN64 :: BVExpr expr => expr 64
+canonicalNaN64 = litBV 0x7FF8000000000000
+
+getFRes :: (KnownNat w, BVExpr expr) => expr (5 + w) -> (expr w, expr 5)
+getFRes e = (extractE 0 e, extractE 32 e)
