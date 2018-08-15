@@ -33,16 +33,21 @@ module Data.BitVector.Sized.Float.App
   , canonicalNaN32
   , posInfinity32
   , negInfinity32
+  , isNaN32
   , isZero32
   , isNormal32
   , isSubnormal32
   -- ** 64-bit
   , f64Exp, f64Sig, f64Sgn
-  , isNaN32
-  , isNaN64
+  , posZero64
+  , negZero64
   , canonicalNaN64
   , posInfinity64
   , negInfinity64
+  , isNaN64
+  , isZero64
+  , isNormal64
+  , isSubnormal64
   -- * Smart constructors
   -- ** Integer to float
   , ui32ToF16E
@@ -57,6 +62,19 @@ module Data.BitVector.Sized.Float.App
   , i64ToF16E
   , i64ToF32E
   , i64ToF64E
+  -- ** Float to integer
+  , f16ToUi32E
+  , f16ToUi64E
+  , f16ToI32E
+  , f16ToI64E
+  , f32ToUi32E
+  , f32ToUi64E
+  , f32ToI32E
+  , f32ToI64E
+  , f64ToUi32E
+  , f64ToUi64E
+  , f64ToI32E
+  , f64ToI64E
   ) where
 
 import Data.Bits
@@ -84,6 +102,18 @@ data BVFloatApp (expr :: Nat -> *) (w :: Nat) where
   I64ToF16App  :: !(RM expr) -> !(expr 64) -> BVFloatApp expr 21
   I64ToF32App  :: !(RM expr) -> !(expr 64) -> BVFloatApp expr 37
   I64ToF64App  :: !(RM expr) -> !(expr 64) -> BVFloatApp expr 69
+  F16ToUi32App :: !(RM expr) -> !(expr 16) -> BVFloatApp expr 37
+  F16ToUi64App :: !(RM expr) -> !(expr 16) -> BVFloatApp expr 69
+  F16ToI32App  :: !(RM expr) -> !(expr 16) -> BVFloatApp expr 37
+  F16ToI64App  :: !(RM expr) -> !(expr 16) -> BVFloatApp expr 69
+  F32ToUi32App :: !(RM expr) -> !(expr 32) -> BVFloatApp expr 37
+  F32ToUi64App :: !(RM expr) -> !(expr 32) -> BVFloatApp expr 69
+  F32ToI32App  :: !(RM expr) -> !(expr 32) -> BVFloatApp expr 37
+  F32ToI64App  :: !(RM expr) -> !(expr 32) -> BVFloatApp expr 69
+  F64ToUi32App :: !(RM expr) -> !(expr 64) -> BVFloatApp expr 37
+  F64ToUi64App :: !(RM expr) -> !(expr 64) -> BVFloatApp expr 69
+  F64ToI32App  :: !(RM expr) -> !(expr 64) -> BVFloatApp expr 37
+  F64ToI64App  :: !(RM expr) -> !(expr 64) -> BVFloatApp expr 69
 
 -- TODO: Fix SoftFloat's Enum instance
 bvToRM :: BitVector 3 -> RoundingMode
@@ -130,7 +160,20 @@ evalBVFloatAppM eval (Ui64ToF64App rmE xE) = cr <$> (bvUi64ToF64 <$> (bvToRM <$>
 evalBVFloatAppM eval (I64ToF16App rmE xE) = cr <$> (bvI64ToF16 <$> (bvToRM <$> eval rmE) <*> eval xE)
 evalBVFloatAppM eval (I64ToF32App rmE xE) = cr <$> (bvI64ToF32 <$> (bvToRM <$> eval rmE) <*> eval xE)
 evalBVFloatAppM eval (I64ToF64App rmE xE) = cr <$> (bvI64ToF64 <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F16ToUi32App rmE xE) = cr <$> (bvF16ToUi32 <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F16ToUi64App rmE xE) = cr <$> (bvF16ToUi64 <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F16ToI32App rmE xE) = cr <$> (bvF16ToI32 <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F16ToI64App rmE xE) = cr <$> (bvF16ToI64 <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F32ToUi32App rmE xE) = cr <$> (bvF32ToUi32 <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F32ToUi64App rmE xE) = cr <$> (bvF32ToUi64 <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F32ToI32App rmE xE) = cr <$> (bvF32ToI32 <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F32ToI64App rmE xE) = cr <$> (bvF32ToI64 <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F64ToUi32App rmE xE) = cr <$> (bvF64ToUi32 <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F64ToUi64App rmE xE) = cr <$> (bvF64ToUi64 <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F64ToI32App rmE xE) = cr <$> (bvF64ToI32 <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F64ToI64App rmE xE) = cr <$> (bvF64ToI64 <$> (bvToRM <$> eval rmE) <*> eval xE)
 
+-- Integer to float
 ui32ToF16E :: BVFloatExpr expr => RM expr -> expr 32 -> expr 21
 ui32ToF16E rmE e = floatAppExpr (Ui32ToF16App rmE e)
 
@@ -166,6 +209,43 @@ i64ToF32E rmE e = floatAppExpr (I64ToF32App rmE e)
 
 i64ToF64E :: BVFloatExpr expr => RM expr -> expr 64 -> expr 69
 i64ToF64E rmE e = floatAppExpr (I64ToF64App rmE e)
+
+-- Float to integer
+f16ToUi32E :: BVFloatExpr expr => RM expr -> expr 16 -> expr 37
+f16ToUi32E rmE e = floatAppExpr (F16ToUi32App rmE e)
+
+f16ToUi64E :: BVFloatExpr expr => RM expr -> expr 16 -> expr 69
+f16ToUi64E rmE e = floatAppExpr (F16ToUi64App rmE e)
+
+f16ToI32E  :: BVFloatExpr expr => RM expr -> expr 16 -> expr 37
+f16ToI32E rmE e = floatAppExpr (F16ToI32App rmE e)
+
+f16ToI64E  :: BVFloatExpr expr => RM expr -> expr 16 -> expr 69
+f16ToI64E rmE e = floatAppExpr (F16ToI64App rmE e)
+
+f32ToUi32E :: BVFloatExpr expr => RM expr -> expr 32 -> expr 37
+f32ToUi32E rmE e = floatAppExpr (F32ToUi32App rmE e)
+
+f32ToUi64E :: BVFloatExpr expr => RM expr -> expr 32 -> expr 69
+f32ToUi64E rmE e = floatAppExpr (F32ToUi64App rmE e)
+
+f32ToI32E  :: BVFloatExpr expr => RM expr -> expr 32 -> expr 37
+f32ToI32E rmE e = floatAppExpr (F32ToI32App rmE e)
+
+f32ToI64E  :: BVFloatExpr expr => RM expr -> expr 32 -> expr 69
+f32ToI64E rmE e = floatAppExpr (F32ToI64App rmE e)
+
+f64ToUi32E :: BVFloatExpr expr => RM expr -> expr 64 -> expr 37
+f64ToUi32E rmE e = floatAppExpr (F64ToUi32App rmE e)
+
+f64ToUi64E :: BVFloatExpr expr => RM expr -> expr 64 -> expr 69
+f64ToUi64E rmE e = floatAppExpr (F64ToUi64App rmE e)
+
+f64ToI32E  :: BVFloatExpr expr => RM expr -> expr 64 -> expr 37
+f64ToI32E rmE e = floatAppExpr (F64ToI32App rmE e)
+
+f64ToI64E  :: BVFloatExpr expr => RM expr -> expr 64 -> expr 69
+f64ToI64E rmE e = floatAppExpr (F64ToI64App rmE e)
 
 -- Miscellaneous
 
@@ -219,8 +299,23 @@ f64Sgn e = extractE 63 e
 isNaN64 :: BVExpr expr => expr 64 -> expr 1
 isNaN64 e = (f64Exp e `eqE` litBV 0x7FF) `andE` (notE (f64Sig e `eqE` litBV 0))
 
+isSubnormal64 :: BVExpr expr => expr 64 -> expr 1
+isSubnormal64 e = (f64Exp e `eqE` litBV 0x0) `andE` (notE (isZero64 e))
+
+isNormal64 :: BVExpr expr => expr 64 -> expr 1
+isNormal64 e = (litBV 0x0 `ltuE` f64Exp e) `andE` (f64Exp e `ltuE` litBV 0xff)
+
 canonicalNaN64 :: BVExpr expr => expr 64
 canonicalNaN64 = litBV 0x7FF8000000000000
+
+posZero64 :: BVExpr expr => expr 64
+posZero64 = litBV 0x0000000000000000
+
+negZero64 :: BVExpr expr => expr 64
+negZero64 = litBV 0x8000000000000000
+
+isZero64 :: BVExpr expr => expr 64 -> expr 1
+isZero64 e = (e `eqE` posZero64) `orE` (e `eqE` negZero64)
 
 posInfinity64 :: BVExpr expr => expr 64
 posInfinity64 = litBV 0x7FF0000000000000
