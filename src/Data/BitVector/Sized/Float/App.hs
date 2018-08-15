@@ -27,21 +27,22 @@ module Data.BitVector.Sized.Float.App
   , getFRes
   -- * Miscellaneous functions
   -- ** 32-bit
+  , f32Exp, f32Sig, f32Sgn
   , posZero32
   , negZero32
   , canonicalNaN32
   , posInfinity32
   , negInfinity32
   , isZero32
+  , isNormal32
   , isSubnormal32
   -- ** 64-bit
+  , f64Exp, f64Sig, f64Sgn
   , isNaN32
-  , f32Exp, f32Sig, f32Sgn
   , isNaN64
   , canonicalNaN64
   , posInfinity64
   , negInfinity64
-  , f64Exp, f64Sig, f64Sgn
   -- * Smart constructors
   -- ** Integer to float
   , ui32ToF16E
@@ -182,9 +183,10 @@ isNaN32 :: BVExpr expr => expr 32 -> expr 1
 isNaN32 e = (f32Exp e `eqE` litBV 0xFF) `andE` (notE (f32Sig e `eqE` litBV 0))
 
 isSubnormal32 :: BVExpr expr => expr 32 -> expr 1
-isSubnormal32 e = (litBV 0x0 `ltuE` f32Exp e) `andE`
-                  (f32Exp e `ltuE` litBV 0xff) `andE`
-                  (notE (isZero32 e))
+isSubnormal32 e = (f32Exp e `eqE` litBV 0x0) `andE` (notE (isZero32 e))
+
+isNormal32 :: BVExpr expr => expr 32 -> expr 1
+isNormal32 e = (litBV 0x0 `ltuE` f32Exp e) `andE` (f32Exp e `ltuE` litBV 0xff)
 
 canonicalNaN32 :: BVExpr expr => expr 32
 canonicalNaN32 = litBV 0x7FC00000
