@@ -65,6 +65,7 @@ module Data.BitVector.Sized.Float
   , bvF16Add
   , bvF16Sub
   , bvF16Mul
+  , bvF16MulAdd
   , bvF16Div
   , bvF16Rem
   , bvF16Sqrt
@@ -81,6 +82,7 @@ module Data.BitVector.Sized.Float
   , bvF32Add
   , bvF32Sub
   , bvF32Mul
+  , bvF32MulAdd
   , bvF32Div
   , bvF32Rem
   , bvF32Sqrt
@@ -97,6 +99,7 @@ module Data.BitVector.Sized.Float
   , bvF64Add
   , bvF64Sub
   , bvF64Mul
+  , bvF64MulAdd
   , bvF64Div
   , bvF64Rem
   , bvF64Sqrt
@@ -170,6 +173,13 @@ liftF2Bool :: (KnownNat w, Integral (WordType w))
 liftF2Bool flop2 rm bv1 bv2 =
   let Result wBool fFlags = flop2 rm (fromIntegral $ bvIntegerU bv1) (fromIntegral $ bvIntegerU bv2)
   in  Result (wBool /= 0) fFlags
+
+liftF3 :: (KnownNat w, Integral (WordType w))
+       => (RoundingMode -> WordType w -> WordType w -> WordType w -> Result (WordType w))
+       -> RoundingMode -> BitVector w -> BitVector w -> BitVector w -> Result (BitVector w)
+liftF3 flop3 rm bv1 bv2 bv3 =
+  let Result f fFlags = flop3 rm (fromIntegral $ bvIntegerU bv1) (fromIntegral $ bvIntegerU bv2) (fromIntegral $ bvIntegerU bv3)
+  in  Result (fromIntegral f) fFlags
 
 -- Integer to floating point
 
@@ -279,6 +289,9 @@ bvF16Sub = liftF2 f16Sub
 bvF16Mul :: RoundingMode -> BitVector 16 -> BitVector 16 -> Result (BitVector 16)
 bvF16Mul = liftF2 f16Mul
 
+bvF16MulAdd :: RoundingMode -> BitVector 16 -> BitVector 16 -> BitVector 16 -> Result (BitVector 16)
+bvF16MulAdd = liftF3 f16MulAdd
+
 bvF16Div :: RoundingMode -> BitVector 16 -> BitVector 16 -> Result (BitVector 16)
 bvF16Div = liftF2 f16Div
 
@@ -322,6 +335,9 @@ bvF32Sub = liftF2 f32Sub
 bvF32Mul :: RoundingMode -> BitVector 32 -> BitVector 32 -> Result (BitVector 32)
 bvF32Mul = liftF2 f32Mul
 
+bvF32MulAdd :: RoundingMode -> BitVector 32 -> BitVector 32 -> BitVector 32 -> Result (BitVector 32)
+bvF32MulAdd = liftF3 f32MulAdd
+
 bvF32Div :: RoundingMode -> BitVector 32 -> BitVector 32 -> Result (BitVector 32)
 bvF32Div = liftF2 f32Div
 
@@ -364,6 +380,9 @@ bvF64Sub = liftF2 f64Sub
 
 bvF64Mul :: RoundingMode -> BitVector 64 -> BitVector 64 -> Result (BitVector 64)
 bvF64Mul = liftF2 f64Mul
+
+bvF64MulAdd :: RoundingMode -> BitVector 64 -> BitVector 64 -> BitVector 64 -> Result (BitVector 64)
+bvF64MulAdd = liftF3 f64MulAdd
 
 bvF64Div :: RoundingMode -> BitVector 64 -> BitVector 64 -> Result (BitVector 64)
 bvF64Div = liftF2 f64Div
