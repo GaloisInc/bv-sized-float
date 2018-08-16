@@ -79,6 +79,13 @@ module Data.BitVector.Sized.Float.App
   , f64ToUi64E
   , f64ToI32E
   , f64ToI64E
+  -- * Float to float
+  , f16ToF32E
+  , f16ToF64E
+  , f32ToF16E
+  , f32ToF64E
+  , f64ToF16E
+  , f64ToF32E
   ) where
 
 import Data.Bits
@@ -92,7 +99,8 @@ import SoftFloat
 type RM expr = expr 3
 
 -- | Representation of a floating point operation, implicitly containing both a
--- result of the given width and the resulting exceptions.
+-- result of the given width and the resulting exceptions (the latter of which are
+-- stored in the five most significant bits of the result).
 data BVFloatApp (expr :: Nat -> *) (w :: Nat) where
   Ui32ToF16App :: !(RM expr) -> !(expr 32) -> BVFloatApp expr 21
   Ui32ToF32App :: !(RM expr) -> !(expr 32) -> BVFloatApp expr 37
@@ -118,6 +126,13 @@ data BVFloatApp (expr :: Nat -> *) (w :: Nat) where
   F64ToUi64App :: !(RM expr) -> !(expr 64) -> BVFloatApp expr 69
   F64ToI32App  :: !(RM expr) -> !(expr 64) -> BVFloatApp expr 37
   F64ToI64App  :: !(RM expr) -> !(expr 64) -> BVFloatApp expr 69
+  F16ToF32App  :: !(RM expr) -> !(expr 16) -> BVFloatApp expr 37
+  F16ToF64App  :: !(RM expr) -> !(expr 16) -> BVFloatApp expr 69
+  F32ToF16App  :: !(RM expr) -> !(expr 32) -> BVFloatApp expr 21
+  F32ToF64App  :: !(RM expr) -> !(expr 32) -> BVFloatApp expr 69
+  F64ToF16App  :: !(RM expr) -> !(expr 64) -> BVFloatApp expr 21
+  F64ToF32App  :: !(RM expr) -> !(expr 64) -> BVFloatApp expr 37
+
 
 -- TODO: Fix SoftFloat's Enum instance
 bvToRM :: BitVector 3 -> RoundingMode
@@ -176,6 +191,12 @@ evalBVFloatAppM eval (F64ToUi32App rmE xE) = cr <$> (bvF64ToUi32 <$> (bvToRM <$>
 evalBVFloatAppM eval (F64ToUi64App rmE xE) = cr <$> (bvF64ToUi64 <$> (bvToRM <$> eval rmE) <*> eval xE)
 evalBVFloatAppM eval (F64ToI32App rmE xE) = cr <$> (bvF64ToI32 <$> (bvToRM <$> eval rmE) <*> eval xE)
 evalBVFloatAppM eval (F64ToI64App rmE xE) = cr <$> (bvF64ToI64 <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F16ToF32App rmE xE) = cr <$> (bvF16ToF32 <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F16ToF64App rmE xE) = cr <$> (bvF16ToF64 <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F32ToF16App rmE xE) = cr <$> (bvF32ToF16 <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F32ToF64App rmE xE) = cr <$> (bvF32ToF64 <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F64ToF16App rmE xE) = cr <$> (bvF64ToF16 <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F64ToF32App rmE xE) = cr <$> (bvF64ToF32 <$> (bvToRM <$> eval rmE) <*> eval xE)
 
 -- Integer to float
 ui32ToF16E :: BVFloatExpr expr => RM expr -> expr 32 -> expr 21
@@ -250,6 +271,25 @@ f64ToI32E rmE e = floatAppExpr (F64ToI32App rmE e)
 
 f64ToI64E  :: BVFloatExpr expr => RM expr -> expr 64 -> expr 69
 f64ToI64E rmE e = floatAppExpr (F64ToI64App rmE e)
+
+-- Float to float
+f16ToF32E :: BVFloatExpr expr => RM expr -> expr 16 -> expr 37
+f16ToF32E rmE e = floatAppExpr (F16ToF32App rmE e)
+
+f16ToF64E :: BVFloatExpr expr => RM expr -> expr 16 -> expr 69
+f16ToF64E rmE e = floatAppExpr (F16ToF64App rmE e)
+
+f32ToF16E :: BVFloatExpr expr => RM expr -> expr 32 -> expr 21
+f32ToF16E rmE e = floatAppExpr (F32ToF16App rmE e)
+
+f32ToF64E :: BVFloatExpr expr => RM expr -> expr 32 -> expr 69
+f32ToF64E rmE e = floatAppExpr (F32ToF64App rmE e)
+
+f64ToF16E :: BVFloatExpr expr => RM expr -> expr 64 -> expr 21
+f64ToF16E rmE e = floatAppExpr (F64ToF16App rmE e)
+
+f64ToF32E :: BVFloatExpr expr => RM expr -> expr 64 -> expr 37
+f64ToF32E rmE e = floatAppExpr (F64ToF32App rmE e)
 
 -- Miscellaneous
 
