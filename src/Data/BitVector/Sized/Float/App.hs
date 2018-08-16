@@ -3,6 +3,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
@@ -678,5 +679,6 @@ posInfinity64 = litBV 0x7FF0000000000000
 negInfinity64 :: BVExpr expr => expr 64
 negInfinity64 = litBV 0xFFF0000000000000
 
-getFRes :: (KnownNat w, BVExpr expr) => expr (5 + w) -> (expr w, expr 5)
-getFRes e = (extractE 0 e, extractE 32 e)
+getFRes :: forall w expr . (KnownNat w, BVExpr expr) => expr (5 + w) -> (expr w, expr 5)
+getFRes e = let wRepr = knownNat @w
+            in (extractE 0 e, extractE (fromIntegral $ natValue wRepr) e)
