@@ -25,7 +25,10 @@ module Data.BitVector.Sized.Float.App
   ( BVFloatApp(..)
   , RM
   , evalBVFloatAppM
+  , evalBVFloatApp
   , BVFloatExpr(..)
+  , PureBVFloatExpr(..)
+  , evalPureBVFloatExpr
   , getFRes
   -- * Miscellaneous functions
   , negate
@@ -141,6 +144,7 @@ module Data.BitVector.Sized.Float.App
   , f64IsSignalingNaNE
   ) where
 
+import Control.Monad.Identity
 import Data.Bits
 import Data.BitVector.Sized
 import Data.BitVector.Sized.App
@@ -262,6 +266,15 @@ efToBV (ExceptionFlags ieFlag ufFlag ofFlag infFlag invFlag) =
 class BVExpr expr => BVFloatExpr (expr :: Nat -> *) where
   floatAppExpr :: BVFloatApp expr w -> expr w
 
+data PureBVFloatExpr w = PureBVApp (BVApp PureBVFloatExpr w)
+                       | PureBVFloatApp (BVFloatApp PureBVFloatExpr w)
+
+instance BVExpr PureBVFloatExpr where
+  appExpr = PureBVApp
+
+instance BVFloatExpr PureBVFloatExpr where
+  floatAppExpr = PureBVFloatApp
+
 -- | concatenate result into a single 'BitVector'.
 cr :: Result (BitVector w) -> BitVector (5 + w)
 cr (Result res flags) = efToBV flags `bvConcat` res
@@ -352,6 +365,15 @@ evalBVFloatAppM eval (F64EqSignalingApp xE yE) = crb <$> (bvF64EqSignaling <$> e
 evalBVFloatAppM eval (F64LeQuietApp xE yE) = crb <$> (bvF64LeQuiet <$> eval xE <*> eval yE)
 evalBVFloatAppM eval (F64LtQuietApp xE yE) = crb <$> (bvF64LtQuiet <$> eval xE <*> eval yE)
 evalBVFloatAppM eval (F64IsSignalingNaNApp xE) = crb <$> (bvF64IsSignalingNaN <$> eval xE)
+
+evalBVFloatApp :: (forall w' . expr w' -> BitVector w')
+               -> BVFloatApp expr w
+               -> BitVector w
+evalBVFloatApp eval app = runIdentity $ evalBVFloatAppM (return . eval) app
+
+evalPureBVFloatExpr :: PureBVFloatExpr w -> BitVector w
+evalPureBVFloatExpr (PureBVApp app) = evalBVApp evalPureBVFloatExpr app
+evalPureBVFloatExpr (PureBVFloatApp app) = evalBVFloatApp evalPureBVFloatExpr app
 
 -- Integer to float
 ui32ToF16E :: BVFloatExpr expr => RM expr -> expr 32 -> expr 21

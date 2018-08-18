@@ -19,6 +19,7 @@ library
   build-depends:       base >= 4.7 && < 5
                      , bv-sized >= 0.4.0 && < 0.5
                      , containers >= 0.5.10 && < 0.6
+                     , mtl >= 2 && < 3
                      , parameterized-utils
                      , softfloat-hs
   hs-source-dirs:      src
