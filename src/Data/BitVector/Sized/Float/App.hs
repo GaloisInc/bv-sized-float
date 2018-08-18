@@ -31,7 +31,6 @@ module Data.BitVector.Sized.Float.App
   , evalPureBVFloatExpr
   , getFRes
   -- * Miscellaneous functions
-  , negate
   -- ** 32-bit
   , f32Exp, f32Sig, f32Sgn
   , negate32
