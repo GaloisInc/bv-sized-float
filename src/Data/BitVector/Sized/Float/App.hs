@@ -680,7 +680,7 @@ isSubnormal64 :: BVExpr expr => expr 64 -> expr 1
 isSubnormal64 e = (f64Exp e `eqE` litBV 0x0) `andE` (notE (isZero64 e))
 
 isNormal64 :: BVExpr expr => expr 64 -> expr 1
-isNormal64 e = (litBV 0x0 `ltuE` f64Exp e) `andE` (f64Exp e `ltuE` litBV 0xff)
+isNormal64 e = (litBV 0x0 `ltuE` f64Exp e) `andE` (f64Exp e `ltuE` litBV 0x7ff)
 
 canonicalNaN64 :: BVExpr expr => expr 64
 canonicalNaN64 = litBV 0x7FF8000000000000
