@@ -65,6 +65,7 @@ module Data.BitVector.Sized.Float
   , bvF16Add
   , bvF16Sub
   , bvF16Mul
+  , bvF16MulAdd
   , bvF16Div
   , bvF16Rem
   , bvF16Sqrt
@@ -81,6 +82,7 @@ module Data.BitVector.Sized.Float
   , bvF32Add
   , bvF32Sub
   , bvF32Mul
+  , bvF32MulAdd
   , bvF32Div
   , bvF32Rem
   , bvF32Sqrt
@@ -97,6 +99,7 @@ module Data.BitVector.Sized.Float
   , bvF64Add
   , bvF64Sub
   , bvF64Mul
+  , bvF64MulAdd
   , bvF64Div
   , bvF64Rem
   , bvF64Sqrt
@@ -169,6 +172,13 @@ liftF2Bool :: (KnownNat w, Integral (WordType w))
 liftF2Bool flop2 _ bv1 bv2 =
   let Result wBool fFlags = flop2 (fromIntegral $ bvIntegerU bv1) (fromIntegral $ bvIntegerU bv2)
   in  Result wBool fFlags
+
+liftF3 :: (KnownNat w, Integral (WordType w))
+       => (RoundingMode -> WordType w -> WordType w -> WordType w -> Result (WordType w))
+       -> RoundingMode -> BitVector w -> BitVector w -> BitVector w -> Result (BitVector w)
+liftF3 flop3 rm bv1 bv2 bv3 =
+  let Result f fFlags = flop3 rm (fromIntegral $ bvIntegerU bv1) (fromIntegral $ bvIntegerU bv2) (fromIntegral $ bvIntegerU bv3)
+  in  Result (fromIntegral f) fFlags
 
 -- Integer to floating point
 
@@ -278,6 +288,9 @@ bvF16Sub = liftF2 f16Sub
 bvF16Mul :: RoundingMode -> BitVector 16 -> BitVector 16 -> Result (BitVector 16)
 bvF16Mul = liftF2 f16Mul
 
+bvF16MulAdd :: RoundingMode -> BitVector 16 -> BitVector 16 -> BitVector 16 -> Result (BitVector 16)
+bvF16MulAdd = liftF3 f16MulAdd
+
 bvF16Div :: RoundingMode -> BitVector 16 -> BitVector 16 -> Result (BitVector 16)
 bvF16Div = liftF2 f16Div
 
@@ -287,25 +300,25 @@ bvF16Rem = liftF2 f16Rem
 bvF16Sqrt :: RoundingMode -> BitVector 16 -> Result (BitVector 16)
 bvF16Sqrt = liftF1U f16Sqrt
 
-bvF16Eq :: RoundingMode -> BitVector 16 -> BitVector 16 -> Result Bool
+bvF16Eq :: BitVector 16 -> BitVector 16 -> Result Bool
 bvF16Eq = liftF2Bool f16Eq
 
-bvF16Le :: RoundingMode -> BitVector 16 -> BitVector 16 -> Result Bool
+bvF16Le :: BitVector 16 -> BitVector 16 -> Result Bool
 bvF16Le = liftF2Bool f16Le
 
-bvF16Lt :: RoundingMode -> BitVector 16 -> BitVector 16 -> Result Bool
+bvF16Lt :: BitVector 16 -> BitVector 16 -> Result Bool
 bvF16Lt = liftF2Bool f16Lt
 
-bvF16EqSignaling :: RoundingMode -> BitVector 16 -> BitVector 16 -> Result Bool
+bvF16EqSignaling :: BitVector 16 -> BitVector 16 -> Result Bool
 bvF16EqSignaling = liftF2Bool f16EqSignaling
 
-bvF16LeQuiet :: RoundingMode -> BitVector 16 -> BitVector 16 -> Result Bool
+bvF16LeQuiet :: BitVector 16 -> BitVector 16 -> Result Bool
 bvF16LeQuiet = liftF2Bool f16LeQuiet
 
-bvF16LtQuiet :: RoundingMode -> BitVector 16 -> BitVector 16 -> Result Bool
+bvF16LtQuiet :: BitVector 16 -> BitVector 16 -> Result Bool
 bvF16LtQuiet = liftF2Bool f16LtQuiet
 
-bvF16IsSignalingNaN :: RoundingMode -> BitVector 16 -> Result Bool
+bvF16IsSignalingNaN :: BitVector 16 -> Result Bool
 bvF16IsSignalingNaN = liftF1Bool f16IsSignalingNaN
 
 -- 32-bit operations
@@ -321,6 +334,9 @@ bvF32Sub = liftF2 f32Sub
 bvF32Mul :: RoundingMode -> BitVector 32 -> BitVector 32 -> Result (BitVector 32)
 bvF32Mul = liftF2 f32Mul
 
+bvF32MulAdd :: RoundingMode -> BitVector 32 -> BitVector 32 -> BitVector 32 -> Result (BitVector 32)
+bvF32MulAdd = liftF3 f32MulAdd
+
 bvF32Div :: RoundingMode -> BitVector 32 -> BitVector 32 -> Result (BitVector 32)
 bvF32Div = liftF2 f32Div
 
@@ -330,25 +346,25 @@ bvF32Rem = liftF2 f32Rem
 bvF32Sqrt :: RoundingMode -> BitVector 32 -> Result (BitVector 32)
 bvF32Sqrt = liftF1U f32Sqrt
 
-bvF32Eq :: RoundingMode -> BitVector 32 -> BitVector 32 -> Result Bool
+bvF32Eq :: BitVector 32 -> BitVector 32 -> Result Bool
 bvF32Eq = liftF2Bool f32Eq
 
-bvF32Le :: RoundingMode -> BitVector 32 -> BitVector 32 -> Result Bool
+bvF32Le :: BitVector 32 -> BitVector 32 -> Result Bool
 bvF32Le = liftF2Bool f32Le
 
-bvF32Lt :: RoundingMode -> BitVector 32 -> BitVector 32 -> Result Bool
+bvF32Lt :: BitVector 32 -> BitVector 32 -> Result Bool
 bvF32Lt = liftF2Bool f32Lt
 
-bvF32EqSignaling :: RoundingMode -> BitVector 32 -> BitVector 32 -> Result Bool
+bvF32EqSignaling :: BitVector 32 -> BitVector 32 -> Result Bool
 bvF32EqSignaling = liftF2Bool f32EqSignaling
 
-bvF32LeQuiet :: RoundingMode -> BitVector 32 -> BitVector 32 -> Result Bool
+bvF32LeQuiet :: BitVector 32 -> BitVector 32 -> Result Bool
 bvF32LeQuiet = liftF2Bool f32LeQuiet
 
-bvF32LtQuiet :: RoundingMode -> BitVector 32 -> BitVector 32 -> Result Bool
+bvF32LtQuiet :: BitVector 32 -> BitVector 32 -> Result Bool
 bvF32LtQuiet = liftF2Bool f32LtQuiet
 
-bvF32IsSignalingNaN :: RoundingMode -> BitVector 32 -> Result Bool
+bvF32IsSignalingNaN :: BitVector 32 -> Result Bool
 bvF32IsSignalingNaN = liftF1Bool f32IsSignalingNaN
 
 -- 64-bit operations
@@ -364,6 +380,9 @@ bvF64Sub = liftF2 f64Sub
 bvF64Mul :: RoundingMode -> BitVector 64 -> BitVector 64 -> Result (BitVector 64)
 bvF64Mul = liftF2 f64Mul
 
+bvF64MulAdd :: RoundingMode -> BitVector 64 -> BitVector 64 -> BitVector 64 -> Result (BitVector 64)
+bvF64MulAdd = liftF3 f64MulAdd
+
 bvF64Div :: RoundingMode -> BitVector 64 -> BitVector 64 -> Result (BitVector 64)
 bvF64Div = liftF2 f64Div
 
@@ -373,25 +392,25 @@ bvF64Rem = liftF2 f64Rem
 bvF64Sqrt :: RoundingMode -> BitVector 64 -> Result (BitVector 64)
 bvF64Sqrt = liftF1U f64Sqrt
 
-bvF64Eq :: RoundingMode -> BitVector 64 -> BitVector 64 -> Result Bool
+bvF64Eq :: BitVector 64 -> BitVector 64 -> Result Bool
 bvF64Eq = liftF2Bool f64Eq
 
-bvF64Le :: RoundingMode -> BitVector 64 -> BitVector 64 -> Result Bool
+bvF64Le :: BitVector 64 -> BitVector 64 -> Result Bool
 bvF64Le = liftF2Bool f64Le
 
-bvF64Lt :: RoundingMode -> BitVector 64 -> BitVector 64 -> Result Bool
+bvF64Lt :: BitVector 64 -> BitVector 64 -> Result Bool
 bvF64Lt = liftF2Bool f64Lt
 
-bvF64EqSignaling :: RoundingMode -> BitVector 64 -> BitVector 64 -> Result Bool
+bvF64EqSignaling :: BitVector 64 -> BitVector 64 -> Result Bool
 bvF64EqSignaling = liftF2Bool f64EqSignaling
 
-bvF64LeQuiet :: RoundingMode -> BitVector 64 -> BitVector 64 -> Result Bool
+bvF64LeQuiet :: BitVector 64 -> BitVector 64 -> Result Bool
 bvF64LeQuiet = liftF2Bool f64LeQuiet
 
-bvF64LtQuiet :: RoundingMode -> BitVector 64 -> BitVector 64 -> Result Bool
+bvF64LtQuiet :: BitVector 64 -> BitVector 64 -> Result Bool
 bvF64LtQuiet = liftF2Bool f64LtQuiet
 
-bvF64IsSignalingNaN :: RoundingMode -> BitVector 64 -> Result Bool
+bvF64IsSignalingNaN :: BitVector 64 -> Result Bool
 bvF64IsSignalingNaN = liftF1Bool f64IsSignalingNaN
 
 -- TODO: The following commented code outlines a strategy for unifying all floating

@@ -3,8 +3,10 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 
 {-|
@@ -23,11 +25,15 @@ module Data.BitVector.Sized.Float.App
   ( BVFloatApp(..)
   , RM
   , evalBVFloatAppM
+  , evalBVFloatApp
   , BVFloatExpr(..)
+  , PureBVFloatExpr(..)
+  , evalPureBVFloatExpr
   , getFRes
   -- * Miscellaneous functions
   -- ** 32-bit
   , f32Exp, f32Sig, f32Sgn
+  , negate32
   , posZero32
   , negZero32
   , canonicalNaN32
@@ -41,6 +47,7 @@ module Data.BitVector.Sized.Float.App
   , isSubnormal32
   -- ** 64-bit
   , f64Exp, f64Sig, f64Sgn
+  , negate64
   , posZero64
   , negZero64
   , canonicalNaN64
@@ -79,12 +86,70 @@ module Data.BitVector.Sized.Float.App
   , f64ToUi64E
   , f64ToI32E
   , f64ToI64E
+  -- * Float to float
+  , f16ToF32E
+  , f16ToF64E
+  , f32ToF16E
+  , f32ToF64E
+  , f64ToF16E
+  , f64ToF32E
+  -- * 16-bit operations
+  , f16RoundToIntE
+  , f16AddE
+  , f16SubE
+  , f16MulE
+  , f16MulAddE
+  , f16DivE
+  , f16RemE
+  , f16SqrtE
+  , f16EqE
+  , f16LeE
+  , f16LtE
+  , f16EqSignalingE
+  , f16LeQuietE
+  , f16LtQuietE
+  , f16IsSignalingNaNE
+  -- * 32-bit operations
+  , f32RoundToIntE
+  , f32AddE
+  , f32SubE
+  , f32MulE
+  , f32MulAddE
+  , f32DivE
+  , f32RemE
+  , f32SqrtE
+  , f32EqE
+  , f32LeE
+  , f32LtE
+  , f32EqSignalingE
+  , f32LeQuietE
+  , f32LtQuietE
+  , f32IsSignalingNaNE
+  -- * 64-bit operations
+  , f64RoundToIntE
+  , f64AddE
+  , f64SubE
+  , f64MulE
+  , f64MulAddE
+  , f64DivE
+  , f64RemE
+  , f64SqrtE
+  , f64EqE
+  , f64LeE
+  , f64LtE
+  , f64EqSignalingE
+  , f64LeQuietE
+  , f64LtQuietE
+  , f64IsSignalingNaNE
   ) where
 
+import Control.Monad.Identity
 import Data.Bits
 import Data.BitVector.Sized
 import Data.BitVector.Sized.App
 import Data.BitVector.Sized.Float
+import Data.Parameterized
+import Foreign.Marshal.Utils (fromBool)
 import GHC.TypeLits
 import SoftFloat
 
@@ -92,7 +157,8 @@ import SoftFloat
 type RM expr = expr 3
 
 -- | Representation of a floating point operation, implicitly containing both a
--- result of the given width and the resulting exceptions.
+-- result of the given width and the resulting exceptions (the latter of which are
+-- stored in the five most significant bits of the result).
 data BVFloatApp (expr :: Nat -> *) (w :: Nat) where
   Ui32ToF16App :: !(RM expr) -> !(expr 32) -> BVFloatApp expr 21
   Ui32ToF32App :: !(RM expr) -> !(expr 32) -> BVFloatApp expr 37
@@ -106,6 +172,7 @@ data BVFloatApp (expr :: Nat -> *) (w :: Nat) where
   I64ToF16App  :: !(RM expr) -> !(expr 64) -> BVFloatApp expr 21
   I64ToF32App  :: !(RM expr) -> !(expr 64) -> BVFloatApp expr 37
   I64ToF64App  :: !(RM expr) -> !(expr 64) -> BVFloatApp expr 69
+
   F16ToUi32App :: !(RM expr) -> !(expr 16) -> BVFloatApp expr 37
   F16ToUi64App :: !(RM expr) -> !(expr 16) -> BVFloatApp expr 69
   F16ToI32App  :: !(RM expr) -> !(expr 16) -> BVFloatApp expr 37
@@ -118,6 +185,61 @@ data BVFloatApp (expr :: Nat -> *) (w :: Nat) where
   F64ToUi64App :: !(RM expr) -> !(expr 64) -> BVFloatApp expr 69
   F64ToI32App  :: !(RM expr) -> !(expr 64) -> BVFloatApp expr 37
   F64ToI64App  :: !(RM expr) -> !(expr 64) -> BVFloatApp expr 69
+
+  F16ToF32App  :: !(RM expr) -> !(expr 16) -> BVFloatApp expr 37
+  F16ToF64App  :: !(RM expr) -> !(expr 16) -> BVFloatApp expr 69
+  F32ToF16App  :: !(RM expr) -> !(expr 32) -> BVFloatApp expr 21
+  F32ToF64App  :: !(RM expr) -> !(expr 32) -> BVFloatApp expr 69
+  F64ToF16App  :: !(RM expr) -> !(expr 64) -> BVFloatApp expr 21
+  F64ToF32App  :: !(RM expr) -> !(expr 64) -> BVFloatApp expr 37
+
+  F16RoundToIntApp :: !(RM expr) -> !(expr 16) -> BVFloatApp expr 21
+  F16AddApp :: !(RM expr) -> !(expr 16) -> !(expr 16) -> BVFloatApp expr 21
+  F16SubApp :: !(RM expr) -> !(expr 16) -> !(expr 16) -> BVFloatApp expr 21
+  F16MulApp :: !(RM expr) -> !(expr 16) -> !(expr 16) -> BVFloatApp expr 21
+  F16MulAddApp :: !(RM expr) -> !(expr 16) -> !(expr 16) -> !(expr 16) -> BVFloatApp expr 21
+  F16DivApp :: !(RM expr) -> !(expr 16) -> !(expr 16) -> BVFloatApp expr 21
+  F16RemApp :: !(RM expr) -> !(expr 16) -> !(expr 16) -> BVFloatApp expr 21
+  F16SqrtApp :: !(RM expr) -> !(expr 16) -> BVFloatApp expr 21
+  F16EqApp :: !(expr 16) -> !(expr 16) -> BVFloatApp expr 6
+  F16LeApp :: !(expr 16) -> !(expr 16) -> BVFloatApp expr 6
+  F16LtApp :: !(expr 16) -> !(expr 16) -> BVFloatApp expr 6
+  F16EqSignalingApp :: !(expr 16) -> !(expr 16) -> BVFloatApp expr 6
+  F16LeQuietApp :: !(expr 16) -> !(expr 16) -> BVFloatApp expr 6
+  F16LtQuietApp :: !(expr 16) -> !(expr 16) -> BVFloatApp expr 6
+  F16IsSignalingNaNApp :: !(expr 16) -> BVFloatApp expr 6
+
+  F32RoundToIntApp :: !(RM expr) -> !(expr 32) -> BVFloatApp expr 37
+  F32AddApp :: !(RM expr) -> !(expr 32) -> !(expr 32) -> BVFloatApp expr 37
+  F32SubApp :: !(RM expr) -> !(expr 32) -> !(expr 32) -> BVFloatApp expr 37
+  F32MulApp :: !(RM expr) -> !(expr 32) -> !(expr 32) -> BVFloatApp expr 37
+  F32MulAddApp :: !(RM expr) -> !(expr 32) -> !(expr 32) -> !(expr 32) -> BVFloatApp expr 37
+  F32DivApp :: !(RM expr) -> !(expr 32) -> !(expr 32) -> BVFloatApp expr 37
+  F32RemApp :: !(RM expr) -> !(expr 32) -> !(expr 32) -> BVFloatApp expr 37
+  F32SqrtApp :: !(RM expr) -> !(expr 32) -> BVFloatApp expr 37
+  F32EqApp :: !(expr 32) -> !(expr 32) -> BVFloatApp expr 6
+  F32LeApp :: !(expr 32) -> !(expr 32) -> BVFloatApp expr 6
+  F32LtApp :: !(expr 32) -> !(expr 32) -> BVFloatApp expr 6
+  F32EqSignalingApp :: !(expr 32) -> !(expr 32) -> BVFloatApp expr 6
+  F32LeQuietApp :: !(expr 32) -> !(expr 32) -> BVFloatApp expr 6
+  F32LtQuietApp :: !(expr 32) -> !(expr 32) -> BVFloatApp expr 6
+  F32IsSignalingNaNApp :: !(expr 32) -> BVFloatApp expr 6
+
+  F64RoundToIntApp :: !(RM expr) -> !(expr 64) -> BVFloatApp expr 69
+  F64AddApp :: !(RM expr) -> !(expr 64) -> !(expr 64) -> BVFloatApp expr 69
+  F64SubApp :: !(RM expr) -> !(expr 64) -> !(expr 64) -> BVFloatApp expr 69
+  F64MulApp :: !(RM expr) -> !(expr 64) -> !(expr 64) -> BVFloatApp expr 69
+  F64MulAddApp :: !(RM expr) -> !(expr 64) -> !(expr 64) -> !(expr 64) -> BVFloatApp expr 69
+  F64DivApp :: !(RM expr) -> !(expr 64) -> !(expr 64) -> BVFloatApp expr 69
+  F64RemApp :: !(RM expr) -> !(expr 64) -> !(expr 64) -> BVFloatApp expr 69
+  F64SqrtApp :: !(RM expr) -> !(expr 64) -> BVFloatApp expr 69
+  F64EqApp :: !(expr 64) -> !(expr 64) -> BVFloatApp expr 6
+  F64LeApp :: !(expr 64) -> !(expr 64) -> BVFloatApp expr 6
+  F64LtApp :: !(expr 64) -> !(expr 64) -> BVFloatApp expr 6
+  F64EqSignalingApp :: !(expr 64) -> !(expr 64) -> BVFloatApp expr 6
+  F64LeQuietApp :: !(expr 64) -> !(expr 64) -> BVFloatApp expr 6
+  F64LtQuietApp :: !(expr 64) -> !(expr 64) -> BVFloatApp expr 6
+  F64IsSignalingNaNApp :: !(expr 64) -> BVFloatApp expr 6
 
 -- TODO: Fix SoftFloat's Enum instance
 bvToRM :: BitVector 3 -> RoundingMode
@@ -143,9 +265,21 @@ efToBV (ExceptionFlags ieFlag ufFlag ofFlag infFlag invFlag) =
 class BVExpr expr => BVFloatExpr (expr :: Nat -> *) where
   floatAppExpr :: BVFloatApp expr w -> expr w
 
+data PureBVFloatExpr w = PureBVApp (BVApp PureBVFloatExpr w)
+                       | PureBVFloatApp (BVFloatApp PureBVFloatExpr w)
+
+instance BVExpr PureBVFloatExpr where
+  appExpr = PureBVApp
+
+instance BVFloatExpr PureBVFloatExpr where
+  floatAppExpr = PureBVFloatApp
+
 -- | concatenate result into a single 'BitVector'.
 cr :: Result (BitVector w) -> BitVector (5 + w)
 cr (Result res flags) = efToBV flags `bvConcat` res
+
+crb :: Result Bool -> BitVector 6
+crb (Result res flags) = efToBV flags `bvConcat` bitVector (fromBool res)
 
 -- | Evaluation of floating-point expressions.
 evalBVFloatAppM :: Monad m
@@ -176,6 +310,69 @@ evalBVFloatAppM eval (F64ToUi32App rmE xE) = cr <$> (bvF64ToUi32 <$> (bvToRM <$>
 evalBVFloatAppM eval (F64ToUi64App rmE xE) = cr <$> (bvF64ToUi64 <$> (bvToRM <$> eval rmE) <*> eval xE)
 evalBVFloatAppM eval (F64ToI32App rmE xE) = cr <$> (bvF64ToI32 <$> (bvToRM <$> eval rmE) <*> eval xE)
 evalBVFloatAppM eval (F64ToI64App rmE xE) = cr <$> (bvF64ToI64 <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F16ToF32App rmE xE) = cr <$> (bvF16ToF32 <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F16ToF64App rmE xE) = cr <$> (bvF16ToF64 <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F32ToF16App rmE xE) = cr <$> (bvF32ToF16 <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F32ToF64App rmE xE) = cr <$> (bvF32ToF64 <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F64ToF16App rmE xE) = cr <$> (bvF64ToF16 <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F64ToF32App rmE xE) = cr <$> (bvF64ToF32 <$> (bvToRM <$> eval rmE) <*> eval xE)
+
+evalBVFloatAppM eval (F16RoundToIntApp rmE xE) = cr <$> (bvF16RoundToInt <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F16AddApp rmE xE yE) = cr <$> (bvF16Add <$> (bvToRM <$> eval rmE) <*> eval xE <*> eval yE)
+evalBVFloatAppM eval (F16SubApp rmE xE yE) = cr <$> (bvF16Sub <$> (bvToRM <$> eval rmE) <*> eval xE <*> eval yE)
+evalBVFloatAppM eval (F16MulApp rmE xE yE) = cr <$> (bvF16Mul <$> (bvToRM <$> eval rmE) <*> eval xE <*> eval yE)
+evalBVFloatAppM eval (F16MulAddApp rmE xE yE zE) = cr <$> (bvF16MulAdd <$> (bvToRM <$> eval rmE) <*> eval xE <*> eval yE <*> eval zE)
+evalBVFloatAppM eval (F16DivApp rmE xE yE) = cr <$> (bvF16Div <$> (bvToRM <$> eval rmE) <*> eval xE <*> eval yE)
+evalBVFloatAppM eval (F16RemApp rmE xE yE) = cr <$> (bvF16Rem <$> (bvToRM <$> eval rmE) <*> eval xE <*> eval yE)
+evalBVFloatAppM eval (F16SqrtApp rmE xE) = cr <$> (bvF16Sqrt <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F16EqApp xE yE) = crb <$> (bvF16Eq <$> eval xE <*> eval yE)
+evalBVFloatAppM eval (F16LeApp xE yE) = crb <$> (bvF16Le <$> eval xE <*> eval yE)
+evalBVFloatAppM eval (F16LtApp xE yE) = crb <$> (bvF16Lt <$> eval xE <*> eval yE)
+evalBVFloatAppM eval (F16EqSignalingApp xE yE) = crb <$> (bvF16EqSignaling <$> eval xE <*> eval yE)
+evalBVFloatAppM eval (F16LeQuietApp xE yE) = crb <$> (bvF16LeQuiet <$> eval xE <*> eval yE)
+evalBVFloatAppM eval (F16LtQuietApp xE yE) = crb <$> (bvF16LtQuiet <$> eval xE <*> eval yE)
+evalBVFloatAppM eval (F16IsSignalingNaNApp xE) = crb <$> (bvF16IsSignalingNaN <$> eval xE)
+
+evalBVFloatAppM eval (F32RoundToIntApp rmE xE) = cr <$> (bvF32RoundToInt <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F32AddApp rmE xE yE) = cr <$> (bvF32Add <$> (bvToRM <$> eval rmE) <*> eval xE <*> eval yE)
+evalBVFloatAppM eval (F32SubApp rmE xE yE) = cr <$> (bvF32Sub <$> (bvToRM <$> eval rmE) <*> eval xE <*> eval yE)
+evalBVFloatAppM eval (F32MulApp rmE xE yE) = cr <$> (bvF32Mul <$> (bvToRM <$> eval rmE) <*> eval xE <*> eval yE)
+evalBVFloatAppM eval (F32MulAddApp rmE xE yE zE) = cr <$> (bvF32MulAdd <$> (bvToRM <$> eval rmE) <*> eval xE <*> eval yE <*> eval zE)
+evalBVFloatAppM eval (F32DivApp rmE xE yE) = cr <$> (bvF32Div <$> (bvToRM <$> eval rmE) <*> eval xE <*> eval yE)
+evalBVFloatAppM eval (F32RemApp rmE xE yE) = cr <$> (bvF32Rem <$> (bvToRM <$> eval rmE) <*> eval xE <*> eval yE)
+evalBVFloatAppM eval (F32SqrtApp rmE xE) = cr <$> (bvF32Sqrt <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F32EqApp xE yE) = crb <$> (bvF32Eq <$> eval xE <*> eval yE)
+evalBVFloatAppM eval (F32LeApp xE yE) = crb <$> (bvF32Le <$> eval xE <*> eval yE)
+evalBVFloatAppM eval (F32LtApp xE yE) = crb <$> (bvF32Lt <$> eval xE <*> eval yE)
+evalBVFloatAppM eval (F32EqSignalingApp xE yE) = crb <$> (bvF32EqSignaling <$> eval xE <*> eval yE)
+evalBVFloatAppM eval (F32LeQuietApp xE yE) = crb <$> (bvF32LeQuiet <$> eval xE <*> eval yE)
+evalBVFloatAppM eval (F32LtQuietApp xE yE) = crb <$> (bvF32LtQuiet <$> eval xE <*> eval yE)
+evalBVFloatAppM eval (F32IsSignalingNaNApp xE) = crb <$> (bvF32IsSignalingNaN <$> eval xE)
+
+evalBVFloatAppM eval (F64RoundToIntApp rmE xE) = cr <$> (bvF64RoundToInt <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F64AddApp rmE xE yE) = cr <$> (bvF64Add <$> (bvToRM <$> eval rmE) <*> eval xE <*> eval yE)
+evalBVFloatAppM eval (F64SubApp rmE xE yE) = cr <$> (bvF64Sub <$> (bvToRM <$> eval rmE) <*> eval xE <*> eval yE)
+evalBVFloatAppM eval (F64MulApp rmE xE yE) = cr <$> (bvF64Mul <$> (bvToRM <$> eval rmE) <*> eval xE <*> eval yE)
+evalBVFloatAppM eval (F64MulAddApp rmE xE yE zE) = cr <$> (bvF64MulAdd <$> (bvToRM <$> eval rmE) <*> eval xE <*> eval yE <*> eval zE)
+evalBVFloatAppM eval (F64DivApp rmE xE yE) = cr <$> (bvF64Div <$> (bvToRM <$> eval rmE) <*> eval xE <*> eval yE)
+evalBVFloatAppM eval (F64RemApp rmE xE yE) = cr <$> (bvF64Rem <$> (bvToRM <$> eval rmE) <*> eval xE <*> eval yE)
+evalBVFloatAppM eval (F64SqrtApp rmE xE) = cr <$> (bvF64Sqrt <$> (bvToRM <$> eval rmE) <*> eval xE)
+evalBVFloatAppM eval (F64EqApp xE yE) = crb <$> (bvF64Eq <$> eval xE <*> eval yE)
+evalBVFloatAppM eval (F64LeApp xE yE) = crb <$> (bvF64Le <$> eval xE <*> eval yE)
+evalBVFloatAppM eval (F64LtApp xE yE) = crb <$> (bvF64Lt <$> eval xE <*> eval yE)
+evalBVFloatAppM eval (F64EqSignalingApp xE yE) = crb <$> (bvF64EqSignaling <$> eval xE <*> eval yE)
+evalBVFloatAppM eval (F64LeQuietApp xE yE) = crb <$> (bvF64LeQuiet <$> eval xE <*> eval yE)
+evalBVFloatAppM eval (F64LtQuietApp xE yE) = crb <$> (bvF64LtQuiet <$> eval xE <*> eval yE)
+evalBVFloatAppM eval (F64IsSignalingNaNApp xE) = crb <$> (bvF64IsSignalingNaN <$> eval xE)
+
+evalBVFloatApp :: (forall w' . expr w' -> BitVector w')
+               -> BVFloatApp expr w
+               -> BitVector w
+evalBVFloatApp eval app = runIdentity $ evalBVFloatAppM (return . eval) app
+
+evalPureBVFloatExpr :: PureBVFloatExpr w -> BitVector w
+evalPureBVFloatExpr (PureBVApp app) = evalBVApp evalPureBVFloatExpr app
+evalPureBVFloatExpr (PureBVFloatApp app) = evalBVFloatApp evalPureBVFloatExpr app
 
 -- Integer to float
 ui32ToF16E :: BVFloatExpr expr => RM expr -> expr 32 -> expr 21
@@ -251,6 +448,164 @@ f64ToI32E rmE e = floatAppExpr (F64ToI32App rmE e)
 f64ToI64E  :: BVFloatExpr expr => RM expr -> expr 64 -> expr 69
 f64ToI64E rmE e = floatAppExpr (F64ToI64App rmE e)
 
+-- Float to float
+f16ToF32E :: BVFloatExpr expr => RM expr -> expr 16 -> expr 37
+f16ToF32E rmE e = floatAppExpr (F16ToF32App rmE e)
+
+f16ToF64E :: BVFloatExpr expr => RM expr -> expr 16 -> expr 69
+f16ToF64E rmE e = floatAppExpr (F16ToF64App rmE e)
+
+f32ToF16E :: BVFloatExpr expr => RM expr -> expr 32 -> expr 21
+f32ToF16E rmE e = floatAppExpr (F32ToF16App rmE e)
+
+f32ToF64E :: BVFloatExpr expr => RM expr -> expr 32 -> expr 69
+f32ToF64E rmE e = floatAppExpr (F32ToF64App rmE e)
+
+f64ToF16E :: BVFloatExpr expr => RM expr -> expr 64 -> expr 21
+f64ToF16E rmE e = floatAppExpr (F64ToF16App rmE e)
+
+f64ToF32E :: BVFloatExpr expr => RM expr -> expr 64 -> expr 37
+f64ToF32E rmE e = floatAppExpr (F64ToF32App rmE e)
+
+-- 16-bit operations
+f16RoundToIntE :: BVFloatExpr expr => RM expr -> expr 16 -> expr 21
+f16RoundToIntE rmE e = floatAppExpr (F16RoundToIntApp rmE e)
+
+f16AddE :: BVFloatExpr expr => RM expr -> expr 16 -> expr 16 -> expr 21
+f16AddE rmE e1 e2 = floatAppExpr (F16AddApp rmE e1 e2)
+
+f16SubE :: BVFloatExpr expr => RM expr -> expr 16 -> expr 16 -> expr 21
+f16SubE rmE e1 e2 = floatAppExpr (F16SubApp rmE e1 e2)
+
+f16MulE :: BVFloatExpr expr => RM expr -> expr 16 -> expr 16 -> expr 21
+f16MulE rmE e1 e2 = floatAppExpr (F16MulApp rmE e1 e2)
+
+f16MulAddE :: BVFloatExpr expr => RM expr -> expr 16 -> expr 16 -> expr 16 -> expr 21
+f16MulAddE rmE e1 e2 e3 = floatAppExpr (F16MulAddApp rmE e1 e2 e3)
+
+f16DivE :: BVFloatExpr expr => RM expr -> expr 16 -> expr 16 -> expr 21
+f16DivE rmE e1 e2 = floatAppExpr (F16DivApp rmE e1 e2)
+
+f16RemE :: BVFloatExpr expr => RM expr -> expr 16 -> expr 16 -> expr 21
+f16RemE rmE e1 e2 = floatAppExpr (F16RemApp rmE e1 e2)
+
+f16SqrtE :: BVFloatExpr expr => RM expr -> expr 16 -> expr 21
+f16SqrtE rmE e = floatAppExpr (F16SqrtApp rmE e)
+
+f16EqE :: BVFloatExpr expr => expr 16 -> expr 16 -> expr 6
+f16EqE e1 e2 = floatAppExpr (F16EqApp e1 e2)
+
+f16LeE :: BVFloatExpr expr => expr 16 -> expr 16 -> expr 6
+f16LeE e1 e2 = floatAppExpr (F16LeApp e1 e2)
+
+f16LtE :: BVFloatExpr expr => expr 16 -> expr 16 -> expr 6
+f16LtE e1 e2 = floatAppExpr (F16LtApp e1 e2)
+
+f16EqSignalingE :: BVFloatExpr expr => expr 16 -> expr 16 -> expr 6
+f16EqSignalingE e1 e2 = floatAppExpr (F16EqSignalingApp e1 e2)
+
+f16LeQuietE :: BVFloatExpr expr => expr 16 -> expr 16 -> expr 6
+f16LeQuietE e1 e2 = floatAppExpr (F16LeQuietApp e1 e2)
+
+f16LtQuietE :: BVFloatExpr expr => expr 16 -> expr 16 -> expr 6
+f16LtQuietE e1 e2 = floatAppExpr (F16LtQuietApp e1 e2)
+
+f16IsSignalingNaNE :: BVFloatExpr expr => expr 16 -> expr 6
+f16IsSignalingNaNE e = floatAppExpr (F16IsSignalingNaNApp e)
+
+-- 32-bit operations
+f32RoundToIntE :: BVFloatExpr expr => RM expr -> expr 32 -> expr 37
+f32RoundToIntE rmE e = floatAppExpr (F32RoundToIntApp rmE e)
+
+f32AddE :: BVFloatExpr expr => RM expr -> expr 32 -> expr 32 -> expr 37
+f32AddE rmE e1 e2 = floatAppExpr (F32AddApp rmE e1 e2)
+
+f32SubE :: BVFloatExpr expr => RM expr -> expr 32 -> expr 32 -> expr 37
+f32SubE rmE e1 e2 = floatAppExpr (F32SubApp rmE e1 e2)
+
+f32MulE :: BVFloatExpr expr => RM expr -> expr 32 -> expr 32 -> expr 37
+f32MulE rmE e1 e2 = floatAppExpr (F32MulApp rmE e1 e2)
+
+f32MulAddE :: BVFloatExpr expr => RM expr -> expr 32 -> expr 32 -> expr 32 -> expr 37
+f32MulAddE rmE e1 e2 e3 = floatAppExpr (F32MulAddApp rmE e1 e2 e3)
+
+f32DivE :: BVFloatExpr expr => RM expr -> expr 32 -> expr 32 -> expr 37
+f32DivE rmE e1 e2 = floatAppExpr (F32DivApp rmE e1 e2)
+
+f32RemE :: BVFloatExpr expr => RM expr -> expr 32 -> expr 32 -> expr 37
+f32RemE rmE e1 e2 = floatAppExpr (F32RemApp rmE e1 e2)
+
+f32SqrtE :: BVFloatExpr expr => RM expr -> expr 32 -> expr 37
+f32SqrtE rmE e = floatAppExpr (F32SqrtApp rmE e)
+
+f32EqE :: BVFloatExpr expr => expr 32 -> expr 32 -> expr 6
+f32EqE e1 e2 = floatAppExpr (F32EqApp e1 e2)
+
+f32LeE :: BVFloatExpr expr => expr 32 -> expr 32 -> expr 6
+f32LeE e1 e2 = floatAppExpr (F32LeApp e1 e2)
+
+f32LtE :: BVFloatExpr expr => expr 32 -> expr 32 -> expr 6
+f32LtE e1 e2 = floatAppExpr (F32LtApp e1 e2)
+
+f32EqSignalingE :: BVFloatExpr expr => expr 32 -> expr 32 -> expr 6
+f32EqSignalingE e1 e2 = floatAppExpr (F32EqSignalingApp e1 e2)
+
+f32LeQuietE :: BVFloatExpr expr => expr 32 -> expr 32 -> expr 6
+f32LeQuietE e1 e2 = floatAppExpr (F32LeQuietApp e1 e2)
+
+f32LtQuietE :: BVFloatExpr expr => expr 32 -> expr 32 -> expr 6
+f32LtQuietE e1 e2 = floatAppExpr (F32LtQuietApp e1 e2)
+
+f32IsSignalingNaNE :: BVFloatExpr expr => expr 32 -> expr 6
+f32IsSignalingNaNE e = floatAppExpr (F32IsSignalingNaNApp e)
+
+-- 64-bit operations
+f64RoundToIntE :: BVFloatExpr expr => RM expr -> expr 64 -> expr 69
+f64RoundToIntE rmE e = floatAppExpr (F64RoundToIntApp rmE e)
+
+f64AddE :: BVFloatExpr expr => RM expr -> expr 64 -> expr 64 -> expr 69
+f64AddE rmE e1 e2 = floatAppExpr (F64AddApp rmE e1 e2)
+
+f64SubE :: BVFloatExpr expr => RM expr -> expr 64 -> expr 64 -> expr 69
+f64SubE rmE e1 e2 = floatAppExpr (F64SubApp rmE e1 e2)
+
+f64MulE :: BVFloatExpr expr => RM expr -> expr 64 -> expr 64 -> expr 69
+f64MulE rmE e1 e2 = floatAppExpr (F64MulApp rmE e1 e2)
+
+f64MulAddE :: BVFloatExpr expr => RM expr -> expr 64 -> expr 64 -> expr 64 -> expr 69
+f64MulAddE rmE e1 e2 e3 = floatAppExpr (F64MulAddApp rmE e1 e2 e3)
+
+f64DivE :: BVFloatExpr expr => RM expr -> expr 64 -> expr 64 -> expr 69
+f64DivE rmE e1 e2 = floatAppExpr (F64DivApp rmE e1 e2)
+
+f64RemE :: BVFloatExpr expr => RM expr -> expr 64 -> expr 64 -> expr 69
+f64RemE rmE e1 e2 = floatAppExpr (F64RemApp rmE e1 e2)
+
+f64SqrtE :: BVFloatExpr expr => RM expr -> expr 64 -> expr 69
+f64SqrtE rmE e = floatAppExpr (F64SqrtApp rmE e)
+
+f64EqE :: BVFloatExpr expr => expr 64 -> expr 64 -> expr 6
+f64EqE e1 e2 = floatAppExpr (F64EqApp e1 e2)
+
+f64LeE :: BVFloatExpr expr => expr 64 -> expr 64 -> expr 6
+f64LeE e1 e2 = floatAppExpr (F64LeApp e1 e2)
+
+f64LtE :: BVFloatExpr expr => expr 64 -> expr 64 -> expr 6
+f64LtE e1 e2 = floatAppExpr (F64LtApp e1 e2)
+
+f64EqSignalingE :: BVFloatExpr expr => expr 64 -> expr 64 -> expr 6
+f64EqSignalingE e1 e2 = floatAppExpr (F64EqSignalingApp e1 e2)
+
+f64LeQuietE :: BVFloatExpr expr => expr 64 -> expr 64 -> expr 6
+f64LeQuietE e1 e2 = floatAppExpr (F64LeQuietApp e1 e2)
+
+f64LtQuietE :: BVFloatExpr expr => expr 64 -> expr 64 -> expr 6
+f64LtQuietE e1 e2 = floatAppExpr (F64LtQuietApp e1 e2)
+
+f64IsSignalingNaNE :: BVFloatExpr expr => expr 64 -> expr 6
+f64IsSignalingNaNE e = floatAppExpr (F64IsSignalingNaNApp e)
+
+
 -- Miscellaneous
 
 -- 32
@@ -262,6 +617,9 @@ f32Sig e = extractE 0 e
 
 f32Sgn :: BVExpr expr => expr 32 -> expr 1
 f32Sgn e = extractE 31 e
+
+negate32 :: BVExpr expr => expr 32 -> expr 32
+negate32 e = notE (f32Sgn e) `concatE` extractEWithRepr (knownNat @31) 0 e
 
 isNaN32 :: BVExpr expr => expr 32 -> expr 1
 isNaN32 e = (f32Exp e `eqE` litBV 0xFF) `andE` (notE (f32Sig e `eqE` litBV 0))
@@ -306,6 +664,9 @@ f64Sig e = extractE 0 e
 f64Sgn :: BVExpr expr => expr 64 -> expr 1
 f64Sgn e = extractE 63 e
 
+negate64 :: BVExpr expr => expr 64 -> expr 64
+negate64 e = notE (f64Sgn e) `concatE` extractEWithRepr (knownNat @63) 0 e
+
 isNaN64 :: BVExpr expr => expr 64 -> expr 1
 isNaN64 e = (f64Exp e `eqE` litBV 0x7FF) `andE` (notE (f64Sig e `eqE` litBV 0))
 
@@ -319,7 +680,7 @@ isSubnormal64 :: BVExpr expr => expr 64 -> expr 1
 isSubnormal64 e = (f64Exp e `eqE` litBV 0x0) `andE` (notE (isZero64 e))
 
 isNormal64 :: BVExpr expr => expr 64 -> expr 1
-isNormal64 e = (litBV 0x0 `ltuE` f64Exp e) `andE` (f64Exp e `ltuE` litBV 0xff)
+isNormal64 e = (litBV 0x0 `ltuE` f64Exp e) `andE` (f64Exp e `ltuE` litBV 0x7ff)
 
 canonicalNaN64 :: BVExpr expr => expr 64
 canonicalNaN64 = litBV 0x7FF8000000000000
@@ -339,5 +700,6 @@ posInfinity64 = litBV 0x7FF0000000000000
 negInfinity64 :: BVExpr expr => expr 64
 negInfinity64 = litBV 0xFFF0000000000000
 
-getFRes :: (KnownNat w, BVExpr expr) => expr (5 + w) -> (expr w, expr 5)
-getFRes e = (extractE 0 e, extractE 32 e)
+getFRes :: forall w expr . (KnownNat w, BVExpr expr) => expr (5 + w) -> (expr w, expr 5)
+getFRes e = let wRepr = knownNat @w
+            in (extractE 0 e, extractE (fromIntegral $ natValue wRepr) e)
