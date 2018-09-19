@@ -154,10 +154,8 @@ liftF1US flop1 rm bv =
 
 liftF1Bool :: (KnownNat w, Integral (WordType w))
            => (WordType w -> Result Bool)
-           -> RoundingMode -> BitVector w -> Result Bool
-liftF1Bool flop1 _ bv =
-  let Result wBool fFlags = flop1 (fromIntegral $ bvIntegerU bv)
-  in  Result wBool fFlags
+           -> BitVector w -> Result Bool
+liftF1Bool flop1 bv = flop1 (fromIntegral $ bvIntegerU bv)
 
 liftF2 :: (KnownNat w, Integral (WordType w))
        => (RoundingMode -> WordType w -> WordType w -> Result (WordType w))
@@ -168,10 +166,8 @@ liftF2 flop2 rm bv1 bv2 =
 
 liftF2Bool :: (KnownNat w, Integral (WordType w))
            => (WordType w -> WordType w -> Result Bool)
-           -> RoundingMode -> BitVector w -> BitVector w -> Result Bool
-liftF2Bool flop2 _ bv1 bv2 =
-  let Result wBool fFlags = flop2 (fromIntegral $ bvIntegerU bv1) (fromIntegral $ bvIntegerU bv2)
-  in  Result wBool fFlags
+           -> BitVector w -> BitVector w -> Result Bool
+liftF2Bool flop2 bv1 bv2 = flop2 (fromIntegral $ bvIntegerU bv1) (fromIntegral $ bvIntegerU bv2)
 
 liftF3 :: (KnownNat w, Integral (WordType w))
        => (RoundingMode -> WordType w -> WordType w -> WordType w -> Result (WordType w))
