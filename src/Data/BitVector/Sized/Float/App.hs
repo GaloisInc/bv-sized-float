@@ -149,6 +149,7 @@ import Data.BitVector.Sized
 import Data.BitVector.Sized.App
 import Data.BitVector.Sized.Float
 import Data.Parameterized
+import Data.Parameterized.TH.GADT
 import Foreign.Marshal.Utils (fromBool)
 import GHC.TypeLits
 import SoftFloat
@@ -240,6 +241,119 @@ data BVFloatApp (expr :: Nat -> *) (w :: Nat) where
   F64LeQuietApp :: !(expr 64) -> !(expr 64) -> BVFloatApp expr 6
   F64LtQuietApp :: !(expr 64) -> !(expr 64) -> BVFloatApp expr 6
   F64IsSignalingNaNApp :: !(expr 64) -> BVFloatApp expr 6
+
+$(return [])
+
+instance TestEquality expr => TestEquality (BVFloatApp expr) where
+  testEquality = $(structuralTypeEquality [t|BVFloatApp|]
+                   [ (AnyType `TypeApp` AnyType, [|testEquality|]) ])
+
+instance TestEquality expr => Eq (BVFloatApp expr w) where
+  (==) = \x y -> isJust (testEquality x y)
+
+instance TestEquality expr => EqF (BVFloatApp expr) where
+  eqF = (==)
+
+instance OrdF expr => OrdF (BVFloatApp expr) where
+  compareF = $(structuralTypeOrd [t|BVFloatApp|]
+                [ (AnyType `TypeApp` AnyType, [|compareF|]) ])
+
+instance OrdF expr => Ord (BVFloatApp expr w) where
+  compare a b =
+    case compareF a b of
+      LTF -> LT
+      EQF -> EQ
+      GTF -> GT
+
+instance FunctorFC BVFloatApp where
+  fmapFC = fmapFCDefault
+
+instance FoldableFC BVFloatApp where
+  foldMapFC = foldMapFCDefault
+
+-- TODO: Template haskell?
+instance TraversableFC BVFloatApp where
+  traverseFC f (Ui32ToF16App rm x) = Ui32ToF16App <$> f rm <*> f x
+  traverseFC f (Ui32ToF32App rm x) = Ui32ToF32App <$> f rm <*> f x
+  traverseFC f (Ui32ToF64App rm x) = Ui32ToF64App <$> f rm <*> f x
+  traverseFC f (I32ToF16App rm x) = I32ToF16App <$> f rm <*> f x
+  traverseFC f (I32ToF32App rm x) = I32ToF32App <$> f rm <*> f x
+  traverseFC f (I32ToF64App rm x) = I32ToF64App <$> f rm <*> f x
+  traverseFC f (Ui64ToF16App rm x) = Ui64ToF16App <$> f rm <*> f x
+  traverseFC f (Ui64ToF32App rm x) = Ui64ToF32App <$> f rm <*> f x
+  traverseFC f (Ui64ToF64App rm x) = Ui64ToF64App <$> f rm <*> f x
+  traverseFC f (I64ToF16App rm x) = I64ToF16App <$> f rm <*> f x
+  traverseFC f (I64ToF32App rm x) = I64ToF32App <$> f rm <*> f x
+  traverseFC f (I64ToF64App rm x) = I64ToF64App <$> f rm <*> f x
+
+
+  traverseFC f (F16ToUi32App rm x) = F16ToUi32App <$> f rm <*> f x
+  traverseFC f (F16ToUi64App rm x) = F16ToUi64App <$> f rm <*> f x
+  traverseFC f (F16ToI32App rm x) = F16ToI32App <$> f rm <*> f x
+  traverseFC f (F16ToI64App rm x) = F16ToI64App <$> f rm <*> f x
+  traverseFC f (F32ToUi32App rm x) = F32ToUi32App <$> f rm <*> f x
+  traverseFC f (F32ToUi64App rm x) = F32ToUi64App <$> f rm <*> f x
+  traverseFC f (F32ToI32App rm x) = F32ToI32App <$> f rm <*> f x
+  traverseFC f (F32ToI64App rm x) = F32ToI64App <$> f rm <*> f x
+  traverseFC f (F64ToUi32App rm x) = F64ToUi32App <$> f rm <*> f x
+  traverseFC f (F64ToUi64App rm x) = F64ToUi64App <$> f rm <*> f x
+  traverseFC f (F64ToI32App rm x) = F64ToI32App <$> f rm <*> f x
+  traverseFC f (F64ToI64App rm x) = F64ToI64App <$> f rm <*> f x
+
+  traverseFC f (F16ToF32App rm x) = F16ToF32App <$> f rm <*> f x
+  traverseFC f (F16ToF64App rm x) = F16ToF64App <$> f rm <*> f x
+  traverseFC f (F32ToF16App rm x) = F32ToF16App <$> f rm <*> f x
+  traverseFC f (F32ToF64App rm x) = F32ToF64App <$> f rm <*> f x
+  traverseFC f (F64ToF16App rm x) = F64ToF16App <$> f rm <*> f x
+  traverseFC f (F64ToF32App rm x) = F64ToF32App <$> f rm <*> f x
+
+  traverseFC f (F16RoundToIntApp rm x) = F16RoundToIntApp <$> f rm <*> f x
+  traverseFC f (F16AddApp rm x y) = F16AddApp <$> f rm <*> f x <*> f y
+  traverseFC f (F16SubApp rm x y) = F16SubApp <$> f rm <*> f x <*> f y
+  traverseFC f (F16MulApp rm x y) = F16MulApp <$> f rm <*> f x <*> f y
+  traverseFC f (F16MulAddApp rm x y z) = F16MulAddApp <$> f rm <*> f x <*> f y <*> f z
+  traverseFC f (F16DivApp rm x y) = F16DivApp <$> f rm <*> f x <*> f y
+  traverseFC f (F16RemApp rm x y) = F16RemApp <$> f rm <*> f x <*> f y
+  traverseFC f (F16SqrtApp rm x) = F16SqrtApp <$> f rm <*> f x
+  traverseFC f (F16EqApp x y) = F16EqApp <$> f x <*> f y
+  traverseFC f (F16LeApp x y) = F16EqApp <$> f x <*> f y
+  traverseFC f (F16LtApp x y) = F16EqApp <$> f x <*> f y
+  traverseFC f (F16EqSignalingApp x y) = F16EqApp <$> f x <*> f y
+  traverseFC f (F16LeQuietApp x y) = F16EqApp <$> f x <*> f y
+  traverseFC f (F16LtQuietApp x y) = F16EqApp <$> f x <*> f y
+  traverseFC f (F16IsSignalingNaNApp x) = F16IsSignalingNaNApp <$> f x
+
+  traverseFC f (F32RoundToIntApp rm x) = F32RoundToIntApp <$> f rm <*> f x
+  traverseFC f (F32AddApp rm x y) = F32AddApp <$> f rm <*> f x <*> f y
+  traverseFC f (F32SubApp rm x y) = F32SubApp <$> f rm <*> f x <*> f y
+  traverseFC f (F32MulApp rm x y) = F32MulApp <$> f rm <*> f x <*> f y
+  traverseFC f (F32MulAddApp rm x y z) = F32MulAddApp <$> f rm <*> f x <*> f y <*> f z
+  traverseFC f (F32DivApp rm x y) = F32DivApp <$> f rm <*> f x <*> f y
+  traverseFC f (F32RemApp rm x y) = F32RemApp <$> f rm <*> f x <*> f y
+  traverseFC f (F32SqrtApp rm x) = F32SqrtApp <$> f rm <*> f x
+  traverseFC f (F32EqApp x y) = F32EqApp <$> f x <*> f y
+  traverseFC f (F32LeApp x y) = F32EqApp <$> f x <*> f y
+  traverseFC f (F32LtApp x y) = F32EqApp <$> f x <*> f y
+  traverseFC f (F32EqSignalingApp x y) = F32EqApp <$> f x <*> f y
+  traverseFC f (F32LeQuietApp x y) = F32EqApp <$> f x <*> f y
+  traverseFC f (F32LtQuietApp x y) = F32EqApp <$> f x <*> f y
+  traverseFC f (F32IsSignalingNaNApp x) = F32IsSignalingNaNApp <$> f x
+
+  traverseFC f (F64RoundToIntApp rm x) = F64RoundToIntApp <$> f rm <*> f x
+  traverseFC f (F64AddApp rm x y) = F64AddApp <$> f rm <*> f x <*> f y
+  traverseFC f (F64SubApp rm x y) = F64SubApp <$> f rm <*> f x <*> f y
+  traverseFC f (F64MulApp rm x y) = F64MulApp <$> f rm <*> f x <*> f y
+  traverseFC f (F64MulAddApp rm x y z) = F64MulAddApp <$> f rm <*> f x <*> f y <*> f z
+  traverseFC f (F64DivApp rm x y) = F64DivApp <$> f rm <*> f x <*> f y
+  traverseFC f (F64RemApp rm x y) = F64RemApp <$> f rm <*> f x <*> f y
+  traverseFC f (F64SqrtApp rm x) = F64SqrtApp <$> f rm <*> f x
+  traverseFC f (F64EqApp x y) = F64EqApp <$> f x <*> f y
+  traverseFC f (F64LeApp x y) = F64EqApp <$> f x <*> f y
+  traverseFC f (F64LtApp x y) = F64EqApp <$> f x <*> f y
+  traverseFC f (F64EqSignalingApp x y) = F64EqApp <$> f x <*> f y
+  traverseFC f (F64LeQuietApp x y) = F64EqApp <$> f x <*> f y
+  traverseFC f (F64LtQuietApp x y) = F64EqApp <$> f x <*> f y
+  traverseFC f (F64IsSignalingNaNApp x) = F64IsSignalingNaNApp <$> f x
 
 -- TODO: Fix SoftFloat's Enum instance
 bvToRM :: BitVector 3 -> RoundingMode
