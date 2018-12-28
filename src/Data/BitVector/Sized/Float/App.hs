@@ -393,7 +393,7 @@ cr :: Result (BitVector w) -> BitVector (5 + w)
 cr (Result res flags) = efToBV flags `bvConcat` res
 
 crb :: Result Bool -> BitVector 6
-crb (Result res flags) = efToBV flags `bvConcat` bitVector (fromBool res)
+crb (Result res flags) = efToBV flags `bvConcat` bitVector (fromBool res :: Integer)
 
 -- | Evaluation of floating-point expressions.
 evalBVFloatAppM :: Monad m
