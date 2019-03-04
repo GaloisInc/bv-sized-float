@@ -733,7 +733,7 @@ f32Sgn :: BVExpr expr => expr 32 -> expr 1
 f32Sgn e = extractE 31 e
 
 negate32 :: BVExpr expr => expr 32 -> expr 32
-negate32 e = notE (f32Sgn e) `concatE` extractEWithRepr (knownNat @31) 0 e
+negate32 e = notE (f32Sgn e) `concatE` extractE' (knownNat @31) 0 e
 
 isNaN32 :: BVExpr expr => expr 32 -> expr 1
 isNaN32 e = (f32Exp e `eqE` litBV 0xFF) `andE` (notE (f32Sig e `eqE` litBV 0))
@@ -779,7 +779,7 @@ f64Sgn :: BVExpr expr => expr 64 -> expr 1
 f64Sgn e = extractE 63 e
 
 negate64 :: BVExpr expr => expr 64 -> expr 64
-negate64 e = notE (f64Sgn e) `concatE` extractEWithRepr (knownNat @63) 0 e
+negate64 e = notE (f64Sgn e) `concatE` extractE' (knownNat @63) 0 e
 
 isNaN64 :: BVExpr expr => expr 64 -> expr 1
 isNaN64 e = (f64Exp e `eqE` litBV 0x7FF) `andE` (notE (f64Sig e `eqE` litBV 0))

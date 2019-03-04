@@ -1,9 +1,9 @@
 [submodule "submodules/parameterized-utils"]
 	path = submodules/parameterized-utils
-	url = git@github.com:GaloisInc/parameterized-utils.git
+	url = https://github.com/GaloisInc/parameterized-utils.git
 [submodule "submodules/bv-sized"]
 	path = submodules/bv-sized
-	url = git@github.com:GaloisInc/bv-sized
+	url = https://github.com/GaloisInc/bv-sized
 [submodule "submodules/softfloat-hs"]
 	path = submodules/softfloat-hs
-	url = git@github.com:GaloisInc/softfloat-hs.git
+	url = https://github.com/GaloisInc/softfloat-hs.git
