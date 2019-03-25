@@ -26,6 +26,7 @@ module Data.BitVector.Sized.Float.App
   , RM
   , evalBVFloatAppM
   , evalBVFloatApp
+  , bvFloatAppWidth
   , BVFloatExpr(..)
 --  , PureBVFloatExpr(..)
 --  , evalPureBVFloatExpr
@@ -241,6 +242,88 @@ data BVFloatApp (expr :: Nat -> *) (w :: Nat) where
   F64LeQuietApp :: !(expr 64) -> !(expr 64) -> BVFloatApp expr 6
   F64LtQuietApp :: !(expr 64) -> !(expr 64) -> BVFloatApp expr 6
   F64IsSignalingNaNApp :: !(expr 64) -> BVFloatApp expr 6
+
+bvFloatAppWidth :: BVFloatApp expr w -> NatRepr w
+bvFloatAppWidth (Ui32ToF16App _ _) = knownNat
+bvFloatAppWidth (Ui32ToF32App _ _) = knownNat
+bvFloatAppWidth (Ui32ToF64App _ _) = knownNat
+bvFloatAppWidth (I32ToF16App _ _) = knownNat
+bvFloatAppWidth (I32ToF32App _ _) = knownNat
+bvFloatAppWidth (I32ToF64App _ _) = knownNat
+bvFloatAppWidth (Ui64ToF16App _ _) = knownNat
+bvFloatAppWidth (Ui64ToF32App _ _) = knownNat
+bvFloatAppWidth (Ui64ToF64App _ _) = knownNat
+bvFloatAppWidth (I64ToF16App _ _) = knownNat
+bvFloatAppWidth (I64ToF32App _ _) = knownNat
+bvFloatAppWidth (I64ToF64App _ _) = knownNat
+
+bvFloatAppWidth (F16ToUi32App _ _) = knownNat
+bvFloatAppWidth (F16ToUi64App _ _) = knownNat
+bvFloatAppWidth (F16ToI32App _ _) = knownNat
+bvFloatAppWidth (F16ToI64App _ _) = knownNat
+bvFloatAppWidth (F32ToUi32App _ _) = knownNat
+bvFloatAppWidth (F32ToUi64App _ _) = knownNat
+bvFloatAppWidth (F32ToI32App _ _) = knownNat
+bvFloatAppWidth (F32ToI64App _ _) = knownNat
+bvFloatAppWidth (F64ToUi32App _ _) = knownNat
+bvFloatAppWidth (F64ToUi64App _ _) = knownNat
+bvFloatAppWidth (F64ToI32App _ _) = knownNat
+bvFloatAppWidth (F64ToI64App _ _) = knownNat
+
+bvFloatAppWidth (F16ToF32App _ _) = knownNat
+bvFloatAppWidth (F16ToF64App _ _) = knownNat
+bvFloatAppWidth (F32ToF16App _ _) = knownNat
+bvFloatAppWidth (F32ToF64App _ _) = knownNat
+bvFloatAppWidth (F64ToF16App _ _) = knownNat
+bvFloatAppWidth (F64ToF32App _ _) = knownNat
+
+bvFloatAppWidth (F16RoundToIntApp _ _) = knownNat
+bvFloatAppWidth (F16AddApp _ _ _) = knownNat
+bvFloatAppWidth (F16SubApp _ _ _) = knownNat
+bvFloatAppWidth (F16MulApp _ _ _) = knownNat
+bvFloatAppWidth (F16MulAddApp _ _ _ _) = knownNat
+bvFloatAppWidth (F16DivApp _ _ _) = knownNat
+bvFloatAppWidth (F16RemApp _ _ _) = knownNat
+bvFloatAppWidth (F16SqrtApp _ _) = knownNat
+bvFloatAppWidth (F16EqApp _ _) = knownNat
+bvFloatAppWidth (F16LeApp _ _) = knownNat
+bvFloatAppWidth (F16LtApp _ _) = knownNat
+bvFloatAppWidth (F16EqSignalingApp _ _) = knownNat
+bvFloatAppWidth (F16LeQuietApp _ _) = knownNat
+bvFloatAppWidth (F16LtQuietApp _ _) = knownNat
+bvFloatAppWidth (F16IsSignalingNaNApp _) = knownNat
+
+bvFloatAppWidth (F32RoundToIntApp _ _) = knownNat
+bvFloatAppWidth (F32AddApp _ _ _) = knownNat
+bvFloatAppWidth (F32SubApp _ _ _) = knownNat
+bvFloatAppWidth (F32MulApp _ _ _) = knownNat
+bvFloatAppWidth (F32MulAddApp _ _ _ _) = knownNat
+bvFloatAppWidth (F32DivApp _ _ _) = knownNat
+bvFloatAppWidth (F32RemApp _ _ _) = knownNat
+bvFloatAppWidth (F32SqrtApp _ _) = knownNat
+bvFloatAppWidth (F32EqApp _ _) = knownNat
+bvFloatAppWidth (F32LeApp _ _) = knownNat
+bvFloatAppWidth (F32LtApp _ _) = knownNat
+bvFloatAppWidth (F32EqSignalingApp _ _) = knownNat
+bvFloatAppWidth (F32LeQuietApp _ _) = knownNat
+bvFloatAppWidth (F32LtQuietApp _ _) = knownNat
+bvFloatAppWidth (F32IsSignalingNaNApp _) = knownNat
+
+bvFloatAppWidth (F64RoundToIntApp _ _) = knownNat
+bvFloatAppWidth (F64AddApp _ _ _) = knownNat
+bvFloatAppWidth (F64SubApp _ _ _) = knownNat
+bvFloatAppWidth (F64MulApp _ _ _) = knownNat
+bvFloatAppWidth (F64MulAddApp _ _ _ _) = knownNat
+bvFloatAppWidth (F64DivApp _ _ _) = knownNat
+bvFloatAppWidth (F64RemApp _ _ _) = knownNat
+bvFloatAppWidth (F64SqrtApp _ _) = knownNat
+bvFloatAppWidth (F64EqApp _ _) = knownNat
+bvFloatAppWidth (F64LeApp _ _) = knownNat
+bvFloatAppWidth (F64LtApp _ _) = knownNat
+bvFloatAppWidth (F64EqSignalingApp _ _) = knownNat
+bvFloatAppWidth (F64LeQuietApp _ _) = knownNat
+bvFloatAppWidth (F64LtQuietApp _ _) = knownNat
+bvFloatAppWidth (F64IsSignalingNaNApp _) = knownNat
 
 $(return [])
 
