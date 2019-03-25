@@ -27,8 +27,8 @@ module Data.BitVector.Sized.Float.App
   , evalBVFloatAppM
   , evalBVFloatApp
   , BVFloatExpr(..)
-  , PureBVFloatExpr(..)
-  , evalPureBVFloatExpr
+--  , PureBVFloatExpr(..)
+--  , evalPureBVFloatExpr
   , getFRes
   -- * Miscellaneous functions
   -- ** 32-bit
@@ -379,14 +379,14 @@ efToBV (ExceptionFlags ieFlag ufFlag ofFlag infFlag invFlag) =
 class BVExpr expr => BVFloatExpr (expr :: Nat -> *) where
   floatAppExpr :: BVFloatApp expr w -> expr w
 
-data PureBVFloatExpr w = PureBVApp (BVApp PureBVFloatExpr w)
-                       | PureBVFloatApp (BVFloatApp PureBVFloatExpr w)
+-- data PureBVFloatExpr w = PureBVApp (BVApp PureBVFloatExpr w)
+--                        | PureBVFloatApp (BVFloatApp PureBVFloatExpr w)
 
-instance BVExpr PureBVFloatExpr where
-  appExpr = PureBVApp
+-- instance BVExpr PureBVFloatExpr where
+--   appExpr = PureBVApp
 
-instance BVFloatExpr PureBVFloatExpr where
-  floatAppExpr = PureBVFloatApp
+-- instance BVFloatExpr PureBVFloatExpr where
+--   floatAppExpr = PureBVFloatApp
 
 -- | concatenate result into a single 'BitVector'.
 cr :: Result (BitVector w) -> BitVector (5 + w)
@@ -484,9 +484,9 @@ evalBVFloatApp :: (forall w' . expr w' -> BitVector w')
                -> BitVector w
 evalBVFloatApp eval app = runIdentity $ evalBVFloatAppM (return . eval) app
 
-evalPureBVFloatExpr :: PureBVFloatExpr w -> BitVector w
-evalPureBVFloatExpr (PureBVApp app) = evalBVApp evalPureBVFloatExpr app
-evalPureBVFloatExpr (PureBVFloatApp app) = evalBVFloatApp evalPureBVFloatExpr app
+-- evalPureBVFloatExpr :: PureBVFloatExpr w -> BitVector w
+-- evalPureBVFloatExpr (PureBVApp app) = evalBVApp evalPureBVFloatExpr app
+-- evalPureBVFloatExpr (PureBVFloatApp app) = evalBVFloatApp evalPureBVFloatExpr app
 
 -- Integer to float
 ui32ToF16E :: BVFloatExpr expr => RM expr -> expr 32 -> expr 21
