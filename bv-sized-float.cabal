@@ -18,7 +18,7 @@ library
                        Data.BitVector.Sized.Float.App
   build-depends:       base >= 4.7 && < 5
                      , bv-sized >= 0.6.0 && < 0.7
-                     , containers >= 0.5.10 && < 0.6
+                     , containers >= 0.5.10 && < 0.7
                      , mtl >= 2 && < 3
                      , parameterized-utils
                      , softfloat-hs
