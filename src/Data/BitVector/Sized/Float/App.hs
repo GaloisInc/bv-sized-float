@@ -807,25 +807,25 @@ f64IsSignalingNaNE e = floatAppExpr (F64IsSignalingNaNApp e)
 
 -- 32
 f32Exp :: BVExpr expr => expr 32 -> expr 8
-f32Exp e = extractE 23 e
+f32Exp e = extractE (knownNat @23) e
 
 f32Sig :: BVExpr expr => expr 32 -> expr 23
-f32Sig e = extractE 0 e
+f32Sig e = extractE (knownNat @0) e
 
 f32Sgn :: BVExpr expr => expr 32 -> expr 1
-f32Sgn e = extractE 31 e
+f32Sgn e = extractE (knownNat @31) e
 
 negate32 :: BVExpr expr => expr 32 -> expr 32
-negate32 e = notE (f32Sgn e) `concatE` extractE' (knownNat @31) 0 e
+negate32 e = notE (f32Sgn e) `concatE` extractE' (knownNat @31) (knownNat @0) e
 
 isNaN32 :: BVExpr expr => expr 32 -> expr 1
 isNaN32 e = (f32Exp e `eqE` litBV 0xFF) `andE` (notE (f32Sig e `eqE` litBV 0))
 
 isSNaN32 :: BVExpr expr => expr 32 -> expr 1
-isSNaN32 e = isNaN32 e `andE` notE (extractE 22 e)
+isSNaN32 e = isNaN32 e `andE` notE (extractE (knownNat @22) e)
 
 isQNaN32 :: BVExpr expr => expr 32 -> expr 1
-isQNaN32 e = isNaN32 e `andE` extractE 22 e
+isQNaN32 e = isNaN32 e `andE` extractE (knownNat @22) e
 
 isSubnormal32 :: BVExpr expr => expr 32 -> expr 1
 isSubnormal32 e = (f32Exp e `eqE` litBV 0x0) `andE` (notE (isZero32 e))
@@ -853,25 +853,25 @@ negInfinity32 = litBV 0xFF800000
 
 -- 64
 f64Exp :: BVExpr expr => expr 64 -> expr 11
-f64Exp e = extractE 52 e
+f64Exp e = extractE (knownNat @52) e
 
 f64Sig :: BVExpr expr => expr 64 -> expr 52
-f64Sig e = extractE 0 e
+f64Sig e = extractE (knownNat @0) e
 
 f64Sgn :: BVExpr expr => expr 64 -> expr 1
-f64Sgn e = extractE 63 e
+f64Sgn e = extractE (knownNat @63) e
 
 negate64 :: BVExpr expr => expr 64 -> expr 64
-negate64 e = notE (f64Sgn e) `concatE` extractE' (knownNat @63) 0 e
+negate64 e = notE (f64Sgn e) `concatE` extractE' (knownNat @63) (knownNat @0) e
 
 isNaN64 :: BVExpr expr => expr 64 -> expr 1
 isNaN64 e = (f64Exp e `eqE` litBV 0x7FF) `andE` (notE (f64Sig e `eqE` litBV 0))
 
 isSNaN64 :: BVExpr expr => expr 64 -> expr 1
-isSNaN64 e = isNaN64 e `andE` notE (extractE 51 e)
+isSNaN64 e = isNaN64 e `andE` notE (extractE (knownNat @51) e)
 
 isQNaN64 :: BVExpr expr => expr 64 -> expr 1
-isQNaN64 e = isNaN64 e `andE` extractE 51 e
+isQNaN64 e = isNaN64 e `andE` extractE (knownNat @51) e
 
 isSubnormal64 :: BVExpr expr => expr 64 -> expr 1
 isSubnormal64 e = (f64Exp e `eqE` litBV 0x0) `andE` (notE (isZero64 e))
@@ -899,4 +899,4 @@ negInfinity64 = litBV 0xFFF0000000000000
 
 getFRes :: forall w expr . (KnownNat w, BVExpr expr) => expr (5 + w) -> (expr w, expr 5)
 getFRes e = let wRepr = knownNat @w
-            in (extractE 0 e, extractE (fromIntegral $ natValue wRepr) e)
+            in (extractE (knownNat @0) e, extractE wRepr e)
