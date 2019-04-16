@@ -1,4 +1,3 @@
 packages: .
-          submodules/parameterized-utils
           submodules/bv-sized
           submodules/softfloat-hs
