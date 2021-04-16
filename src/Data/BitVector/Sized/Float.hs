@@ -25,100 +25,102 @@ Floating point operations for bv-sized.
 
 module Data.BitVector.Sized.Float
   ( -- * Integer to floating point conversions
-    bvUi32ToF16
-  , bvUi32ToF32
-  , bvUi32ToF64
-  , bvI32ToF16
-  , bvI32ToF32
-  , bvI32ToF64
-  , bvUi64ToF16
-  , bvUi64ToF32
-  , bvUi64ToF64
-  , bvI64ToF16
-  , bvI64ToF32
-  , bvI64ToF64
+    ui32ToF16
+  , ui32ToF32
+  , ui32ToF64
+  , i32ToF16
+  , i32ToF32
+  , i32ToF64
+  , ui64ToF16
+  , ui64ToF32
+  , ui64ToF64
+  , i64ToF16
+  , i64ToF32
+  , i64ToF64
 
     -- * Floating point to integer conversions
-  , bvF16ToUi32
-  , bvF16ToUi64
-  , bvF16ToI32
-  , bvF16ToI64
-  , bvF32ToUi32
-  , bvF32ToUi64
-  , bvF32ToI32
-  , bvF32ToI64
-  , bvF64ToUi32
-  , bvF64ToUi64
-  , bvF64ToI32
-  , bvF64ToI64
+  , f16ToUi32
+  , f16ToUi64
+  , f16ToI32
+  , f16ToI64
+  , f32ToUi32
+  , f32ToUi64
+  , f32ToI32
+  , f32ToI64
+  , f64ToUi32
+  , f64ToUi64
+  , f64ToI32
+  , f64ToI64
 
     -- * Floating point to floating point conversions
-  , bvF16ToF32
-  , bvF16ToF64
-  , bvF32ToF16
-  , bvF32ToF64
-  , bvF64ToF16
-  , bvF64ToF32
+  , f16ToF32
+  , f16ToF64
+  , f32ToF16
+  , f32ToF64
+  , f64ToF16
+  , f64ToF32
 
 
     -- * 16-bit operations
-  , bvF16RoundToInt
-  , bvF16Add
-  , bvF16Sub
-  , bvF16Mul
-  , bvF16MulAdd
-  , bvF16Div
-  , bvF16Rem
-  , bvF16Sqrt
-  , bvF16Eq
-  , bvF16Le
-  , bvF16Lt
-  , bvF16EqSignaling
-  , bvF16LeQuiet
-  , bvF16LtQuiet
-  , bvF16IsSignalingNaN
+  , f16RoundToInt
+  , f16Add
+  , f16Sub
+  , f16Mul
+  , f16MulAdd
+  , f16Div
+  , f16Rem
+  , f16Sqrt
+  , f16Eq
+  , f16Le
+  , f16Lt
+  , f16EqSignaling
+  , f16LeQuiet
+  , f16LtQuiet
+  , f16IsSignalingNaN
 
     -- * 32-bit operations
-  , bvF32RoundToInt
-  , bvF32Add
-  , bvF32Sub
-  , bvF32Mul
-  , bvF32MulAdd
-  , bvF32Div
-  , bvF32Rem
-  , bvF32Sqrt
-  , bvF32Eq
-  , bvF32Le
-  , bvF32Lt
-  , bvF32EqSignaling
-  , bvF32LeQuiet
-  , bvF32LtQuiet
-  , bvF32IsSignalingNaN
+  , f32RoundToInt
+  , f32Add
+  , f32Sub
+  , f32Mul
+  , f32MulAdd
+  , f32Div
+  , f32Rem
+  , f32Sqrt
+  , f32Eq
+  , f32Le
+  , f32Lt
+  , f32EqSignaling
+  , f32LeQuiet
+  , f32LtQuiet
+  , f32IsSignalingNaN
 
     -- * 64-bit operations
-  , bvF64RoundToInt
-  , bvF64Add
-  , bvF64Sub
-  , bvF64Mul
-  , bvF64MulAdd
-  , bvF64Div
-  , bvF64Rem
-  , bvF64Sqrt
-  , bvF64Eq
-  , bvF64Le
-  , bvF64Lt
-  , bvF64EqSignaling
-  , bvF64LeQuiet
-  , bvF64LtQuiet
-  , bvF64IsSignalingNaN
+  , f64RoundToInt
+  , f64Add
+  , f64Sub
+  , f64Mul
+  , f64MulAdd
+  , f64Div
+  , f64Rem
+  , f64Sqrt
+  , f64Eq
+  , f64Le
+  , f64Lt
+  , f64EqSignaling
+  , f64LeQuiet
+  , f64LtQuiet
+  , f64IsSignalingNaN
   ) where
 
-import Data.BitVector.Sized
-import Data.Int
+import qualified Data.BitVector.Sized as BV
+import Data.Int ( Int16, Int32, Int64 )
+import Data.Parameterized ( knownNat )
 import Data.Type.Equality
-import Data.Word
-import GHC.TypeLits
-import SoftFloat
+    ( type (:~:)(Refl), TestEquality(testEquality) )
+import Data.Word ( Word16, Word32, Word64 )
+import GHC.TypeNats ( type (<=), KnownNat, Nat )
+import qualified SoftFloat as SF
 
 type family WordType (n :: Nat) :: * where
   WordType 16 = Word16
@@ -130,307 +132,307 @@ type family IntType (n :: Nat) :: * where
   IntType 32 = Int32
   IntType 64 = Int64
 
-word :: forall w. KnownNat w => WordType w -> BV w
+word :: forall w. KnownNat w => WordType w -> BV.BV w
 word =
   let nw = knownNat @w in
   case nw of
-  _ | Just Refl <- testEquality nw (knownNat @16) -> word16
-  _ | Just Refl <- testEquality nw (knownNat @32) -> word32
-  _ | Just Refl <- testEquality nw (knownNat @64) -> word64
+  _ | Just Refl <- testEquality nw (knownNat @16) -> BV.word16
+  _ | Just Refl <- testEquality nw (knownNat @32) -> BV.word32
+  _ | Just Refl <- testEquality nw (knownNat @64) -> BV.word64
   _ | otherwise -> error ("Unhandled WordType: " ++ show nw ++ ". Please report.")
 
-int :: forall w. KnownNat w => IntType w -> BV w
+int :: forall w. KnownNat w => IntType w -> BV.BV w
 int =
   let nw = knownNat @w in
   case nw of
-  _ | Just Refl <- testEquality nw (knownNat @16) -> int16
-  _ | Just Refl <- testEquality nw (knownNat @32) -> int32
-  _ | Just Refl <- testEquality nw (knownNat @64) -> int64
+  _ | Just Refl <- testEquality nw (knownNat @16) -> BV.int16
+  _ | Just Refl <- testEquality nw (knownNat @32) -> BV.int32
+  _ | Just Refl <- testEquality nw (knownNat @64) -> BV.int64
   _ | otherwise -> error ("Unhandled IntType: " ++ show nw ++ ". Please report.")
 
 liftF1U :: (KnownNat w, Integral (WordType w),
             KnownNat w', Integral (WordType w'))
-        => (RoundingMode -> WordType w -> Result (WordType w'))
-        -> RoundingMode -> BV w -> Result (BV w')
+        => (SF.RoundingMode -> WordType w -> SF.Result (WordType w'))
+        -> SF.RoundingMode -> BV.BV w -> SF.Result (BV.BV w')
 liftF1U flop1 rm bv =
-  let Result f fFlags = flop1 rm (fromIntegral $ asUnsigned bv)
-  in  Result (word f) fFlags
+  let SF.Result f fFlags = flop1 rm (fromIntegral $ BV.asUnsigned bv)
+  in  SF.Result (word f) fFlags
 
 liftF1SU :: (KnownNat w, Integral (IntType w), 1 <= w,
             KnownNat w', Integral (WordType w'))
-        => (RoundingMode -> IntType w -> Result (WordType w'))
-        -> RoundingMode -> BV w -> Result (BV w')
+        => (SF.RoundingMode -> IntType w -> SF.Result (WordType w'))
+        -> SF.RoundingMode -> BV.BV w -> SF.Result (BV.BV w')
 liftF1SU flop1 rm bv =
-  let Result f fFlags = flop1 rm (fromIntegral $ asSigned knownNat bv)
-  in  Result (word f) fFlags
+  let SF.Result f fFlags = flop1 rm (fromIntegral $ BV.asSigned knownNat bv)
+  in  SF.Result (word f) fFlags
 
 liftF1US :: (KnownNat w, Integral (WordType w),
             KnownNat w', Integral (IntType w'))
-        => (RoundingMode -> WordType w -> Result (IntType w'))
-        -> RoundingMode -> BV w -> Result (BV w')
+        => (SF.RoundingMode -> WordType w -> SF.Result (IntType w'))
+        -> SF.RoundingMode -> BV.BV w -> SF.Result (BV.BV w')
 liftF1US flop1 rm bv =
-  let Result f fFlags = flop1 rm (fromIntegral $ asUnsigned bv)
-  in  Result (int f) fFlags
+  let SF.Result f fFlags = flop1 rm (fromIntegral $ BV.asUnsigned bv)
+  in  SF.Result (int f) fFlags
 
 liftF1Bool :: (KnownNat w, Integral (WordType w))
-           => (WordType w -> Result Bool)
-           -> BV w -> Result Bool
-liftF1Bool flop1 bv = flop1 (fromIntegral $ asUnsigned bv)
+           => (WordType w -> SF.Result Bool)
+           -> BV.BV w -> SF.Result Bool
+liftF1Bool flop1 bv = flop1 (fromIntegral $ BV.asUnsigned bv)
 
 liftF2 :: (KnownNat w, Integral (WordType w))
-       => (RoundingMode -> WordType w -> WordType w -> Result (WordType w))
-       -> RoundingMode -> BV w -> BV w -> Result (BV w)
+       => (SF.RoundingMode -> WordType w -> WordType w -> SF.Result (WordType w))
+       -> SF.RoundingMode -> BV.BV w -> BV.BV w -> SF.Result (BV.BV w)
 liftF2 flop2 rm bv1 bv2 =
-  let Result f fFlags = flop2 rm (fromIntegral $ asUnsigned bv1) (fromIntegral $ asUnsigned bv2)
-  in  Result (word f) fFlags
+  let SF.Result f fFlags = flop2 rm (fromIntegral $ BV.asUnsigned bv1) (fromIntegral $ BV.asUnsigned bv2)
+  in  SF.Result (word f) fFlags
 
 liftF2Bool :: (KnownNat w, Integral (WordType w))
-           => (WordType w -> WordType w -> Result Bool)
-           -> BV w -> BV w -> Result Bool
-liftF2Bool flop2 bv1 bv2 = flop2 (fromIntegral $ asUnsigned bv1) (fromIntegral $ asUnsigned bv2)
+           => (WordType w -> WordType w -> SF.Result Bool)
+           -> BV.BV w -> BV.BV w -> SF.Result Bool
+liftF2Bool flop2 bv1 bv2 = flop2 (fromIntegral $ BV.asUnsigned bv1) (fromIntegral $ BV.asUnsigned bv2)
 
 liftF3 :: (KnownNat w, Integral (WordType w))
-       => (RoundingMode -> WordType w -> WordType w -> WordType w -> Result (WordType w))
-       -> RoundingMode -> BV w -> BV w -> BV w -> Result (BV w)
+       => (SF.RoundingMode -> WordType w -> WordType w -> WordType w -> SF.Result (WordType w))
+       -> SF.RoundingMode -> BV.BV w -> BV.BV w -> BV.BV w -> SF.Result (BV.BV w)
 liftF3 flop3 rm bv1 bv2 bv3 =
-  let Result f fFlags = flop3 rm (fromIntegral $ asUnsigned bv1) (fromIntegral $ asUnsigned bv2) (fromIntegral $ asUnsigned bv3)
-  in  Result (word f) fFlags
+  let SF.Result f fFlags = flop3 rm (fromIntegral $ BV.asUnsigned bv1) (fromIntegral $ BV.asUnsigned bv2) (fromIntegral $ BV.asUnsigned bv3)
+  in  SF.Result (word f) fFlags
 
 -- Integer to floating point
 
-bvUi32ToF16 :: RoundingMode -> BV 32 -> Result (BV 16)
-bvUi32ToF16 = liftF1U ui32ToF16
+ui32ToF16 :: SF.RoundingMode -> BV.BV 32 -> SF.Result (BV.BV 16)
+ui32ToF16 = liftF1U SF.ui32ToF16
 
-bvUi32ToF32 :: RoundingMode -> BV 32 -> Result (BV 32)
-bvUi32ToF32 = liftF1U ui32ToF32
+ui32ToF32 :: SF.RoundingMode -> BV.BV 32 -> SF.Result (BV.BV 32)
+ui32ToF32 = liftF1U SF.ui32ToF32
 
-bvUi32ToF64 :: RoundingMode -> BV 32 -> Result (BV 64)
-bvUi32ToF64 = liftF1U ui32ToF64
+ui32ToF64 :: SF.RoundingMode -> BV.BV 32 -> SF.Result (BV.BV 64)
+ui32ToF64 = liftF1U SF.ui32ToF64
 
-bvI32ToF16 :: RoundingMode -> BV 32 -> Result (BV 16)
-bvI32ToF16 = liftF1SU i32ToF16
+i32ToF16 :: SF.RoundingMode -> BV.BV 32 -> SF.Result (BV.BV 16)
+i32ToF16 = liftF1SU SF.i32ToF16
 
-bvI32ToF32 :: RoundingMode -> BV 32 -> Result (BV 32)
-bvI32ToF32 = liftF1SU i32ToF32
+i32ToF32 :: SF.RoundingMode -> BV.BV 32 -> SF.Result (BV.BV 32)
+i32ToF32 = liftF1SU SF.i32ToF32
 
-bvI32ToF64 :: RoundingMode -> BV 32 -> Result (BV 64)
-bvI32ToF64 = liftF1SU i32ToF64
+i32ToF64 :: SF.RoundingMode -> BV.BV 32 -> SF.Result (BV.BV 64)
+i32ToF64 = liftF1SU SF.i32ToF64
 
-bvUi64ToF16 :: RoundingMode -> BV 64 -> Result (BV 16)
-bvUi64ToF16 = liftF1U ui64ToF16
+ui64ToF16 :: SF.RoundingMode -> BV.BV 64 -> SF.Result (BV.BV 16)
+ui64ToF16 = liftF1U SF.ui64ToF16
 
-bvUi64ToF32 :: RoundingMode -> BV 64 -> Result (BV 32)
-bvUi64ToF32 = liftF1U ui64ToF32
+ui64ToF32 :: SF.RoundingMode -> BV.BV 64 -> SF.Result (BV.BV 32)
+ui64ToF32 = liftF1U SF.ui64ToF32
 
-bvUi64ToF64 :: RoundingMode -> BV 64 -> Result (BV 64)
-bvUi64ToF64 = liftF1U ui64ToF64
+ui64ToF64 :: SF.RoundingMode -> BV.BV 64 -> SF.Result (BV.BV 64)
+ui64ToF64 = liftF1U SF.ui64ToF64
 
-bvI64ToF16 :: RoundingMode -> BV 64 -> Result (BV 16)
-bvI64ToF16 = liftF1SU i64ToF16
+i64ToF16 :: SF.RoundingMode -> BV.BV 64 -> SF.Result (BV.BV 16)
+i64ToF16 = liftF1SU SF.i64ToF16
 
-bvI64ToF32 :: RoundingMode -> BV 64 -> Result (BV 32)
-bvI64ToF32 = liftF1SU i64ToF32
+i64ToF32 :: SF.RoundingMode -> BV.BV 64 -> SF.Result (BV.BV 32)
+i64ToF32 = liftF1SU SF.i64ToF32
 
-bvI64ToF64 :: RoundingMode -> BV 64 -> Result (BV 64)
-bvI64ToF64 = liftF1SU i64ToF64
+i64ToF64 :: SF.RoundingMode -> BV.BV 64 -> SF.Result (BV.BV 64)
+i64ToF64 = liftF1SU SF.i64ToF64
 
 -- Floating point to integer
 
-bvF16ToUi32 :: RoundingMode -> BV 16 -> Result (BV 32)
-bvF16ToUi32 = liftF1U f16ToUi32
+f16ToUi32 :: SF.RoundingMode -> BV.BV 16 -> SF.Result (BV.BV 32)
+f16ToUi32 = liftF1U SF.f16ToUi32
 
-bvF16ToUi64 :: RoundingMode -> BV 16 -> Result (BV 64)
-bvF16ToUi64 = liftF1U f16ToUi64
+f16ToUi64 :: SF.RoundingMode -> BV.BV 16 -> SF.Result (BV.BV 64)
+f16ToUi64 = liftF1U SF.f16ToUi64
 
-bvF16ToI32 :: RoundingMode -> BV 16 -> Result (BV 32)
-bvF16ToI32  = liftF1US f16ToI32
+f16ToI32 :: SF.RoundingMode -> BV.BV 16 -> SF.Result (BV.BV 32)
+f16ToI32  = liftF1US SF.f16ToI32
 
-bvF16ToI64 :: RoundingMode -> BV 16 -> Result (BV 64)
-bvF16ToI64  = liftF1US f16ToI64
+f16ToI64 :: SF.RoundingMode -> BV.BV 16 -> SF.Result (BV.BV 64)
+f16ToI64  = liftF1US SF.f16ToI64
 
-bvF32ToUi32 :: RoundingMode -> BV 32 -> Result (BV 32)
-bvF32ToUi32 = liftF1U f32ToUi32
+f32ToUi32 :: SF.RoundingMode -> BV.BV 32 -> SF.Result (BV.BV 32)
+f32ToUi32 = liftF1U SF.f32ToUi32
 
-bvF32ToUi64 :: RoundingMode -> BV 32 -> Result (BV 64)
-bvF32ToUi64 = liftF1U f32ToUi64
+f32ToUi64 :: SF.RoundingMode -> BV.BV 32 -> SF.Result (BV.BV 64)
+f32ToUi64 = liftF1U SF.f32ToUi64
 
-bvF32ToI32 :: RoundingMode -> BV 32 -> Result (BV 32)
-bvF32ToI32  = liftF1US f32ToI32
+f32ToI32 :: SF.RoundingMode -> BV.BV 32 -> SF.Result (BV.BV 32)
+f32ToI32  = liftF1US SF.f32ToI32
 
-bvF32ToI64 :: RoundingMode -> BV 32 -> Result (BV 64)
-bvF32ToI64  = liftF1US f32ToI64
+f32ToI64 :: SF.RoundingMode -> BV.BV 32 -> SF.Result (BV.BV 64)
+f32ToI64  = liftF1US SF.f32ToI64
 
-bvF64ToUi32 :: RoundingMode -> BV 64 -> Result (BV 32)
-bvF64ToUi32 = liftF1U f64ToUi32
+f64ToUi32 :: SF.RoundingMode -> BV.BV 64 -> SF.Result (BV.BV 32)
+f64ToUi32 = liftF1U SF.f64ToUi32
 
-bvF64ToUi64 :: RoundingMode -> BV 64 -> Result (BV 64)
-bvF64ToUi64 = liftF1U f64ToUi64
+f64ToUi64 :: SF.RoundingMode -> BV.BV 64 -> SF.Result (BV.BV 64)
+f64ToUi64 = liftF1U SF.f64ToUi64
 
-bvF64ToI32 :: RoundingMode -> BV 64 -> Result (BV 32)
-bvF64ToI32  = liftF1US f64ToI32
+f64ToI32 :: SF.RoundingMode -> BV.BV 64 -> SF.Result (BV.BV 32)
+f64ToI32  = liftF1US SF.f64ToI32
 
-bvF64ToI64 :: RoundingMode -> BV 64 -> Result (BV 64)
-bvF64ToI64  = liftF1US f64ToI64
+f64ToI64 :: SF.RoundingMode -> BV.BV 64 -> SF.Result (BV.BV 64)
+f64ToI64  = liftF1US SF.f64ToI64
 
 -- Floating point to floating point conversions
-bvF16ToF32 :: RoundingMode -> BV 16 -> Result (BV 32)
-bvF16ToF32 = liftF1U f16ToF32
+f16ToF32 :: SF.RoundingMode -> BV.BV 16 -> SF.Result (BV.BV 32)
+f16ToF32 = liftF1U SF.f16ToF32
 
-bvF16ToF64 :: RoundingMode -> BV 16 -> Result (BV 64)
-bvF16ToF64 = liftF1U f16ToF64
+f16ToF64 :: SF.RoundingMode -> BV.BV 16 -> SF.Result (BV.BV 64)
+f16ToF64 = liftF1U SF.f16ToF64
 
-bvF32ToF16 :: RoundingMode -> BV 32 -> Result (BV 16)
-bvF32ToF16 = liftF1U f32ToF16
+f32ToF16 :: SF.RoundingMode -> BV.BV 32 -> SF.Result (BV.BV 16)
+f32ToF16 = liftF1U SF.f32ToF16
 
-bvF32ToF64 :: RoundingMode -> BV 32 -> Result (BV 64)
-bvF32ToF64 = liftF1U f32ToF64
+f32ToF64 :: SF.RoundingMode -> BV.BV 32 -> SF.Result (BV.BV 64)
+f32ToF64 = liftF1U SF.f32ToF64
 
-bvF64ToF16 :: RoundingMode -> BV 64 -> Result (BV 16)
-bvF64ToF16 = liftF1U f64ToF16
+f64ToF16 :: SF.RoundingMode -> BV.BV 64 -> SF.Result (BV.BV 16)
+f64ToF16 = liftF1U SF.f64ToF16
 
-bvF64ToF32 :: RoundingMode -> BV 64 -> Result (BV 32)
-bvF64ToF32 = liftF1U f64ToF32
+f64ToF32 :: SF.RoundingMode -> BV.BV 64 -> SF.Result (BV.BV 32)
+f64ToF32 = liftF1U SF.f64ToF32
 
 -- 16-bit operations
-bvF16RoundToInt :: RoundingMode -> BV 16 -> Result (BV 16)
-bvF16RoundToInt = liftF1U f16RoundToInt
+f16RoundToInt :: SF.RoundingMode -> BV.BV 16 -> SF.Result (BV.BV 16)
+f16RoundToInt = liftF1U SF.f16RoundToInt
 
-bvF16Add :: RoundingMode -> BV 16 -> BV 16 -> Result (BV 16)
-bvF16Add = liftF2 f16Add
+f16Add :: SF.RoundingMode -> BV.BV 16 -> BV.BV 16 -> SF.Result (BV.BV 16)
+f16Add = liftF2 SF.f16Add
 
-bvF16Sub :: RoundingMode -> BV 16 -> BV 16 -> Result (BV 16)
-bvF16Sub = liftF2 f16Sub
+f16Sub :: SF.RoundingMode -> BV.BV 16 -> BV.BV 16 -> SF.Result (BV.BV 16)
+f16Sub = liftF2 SF.f16Sub
 
-bvF16Mul :: RoundingMode -> BV 16 -> BV 16 -> Result (BV 16)
-bvF16Mul = liftF2 f16Mul
+f16Mul :: SF.RoundingMode -> BV.BV 16 -> BV.BV 16 -> SF.Result (BV.BV 16)
+f16Mul = liftF2 SF.f16Mul
 
-bvF16MulAdd :: RoundingMode -> BV 16 -> BV 16 -> BV 16 -> Result (BV 16)
-bvF16MulAdd = liftF3 f16MulAdd
+f16MulAdd :: SF.RoundingMode -> BV.BV 16 -> BV.BV 16 -> BV.BV 16 -> SF.Result (BV.BV 16)
+f16MulAdd = liftF3 SF.f16MulAdd
 
-bvF16Div :: RoundingMode -> BV 16 -> BV 16 -> Result (BV 16)
-bvF16Div = liftF2 f16Div
+f16Div :: SF.RoundingMode -> BV.BV 16 -> BV.BV 16 -> SF.Result (BV.BV 16)
+f16Div = liftF2 SF.f16Div
 
-bvF16Rem :: RoundingMode -> BV 16 -> BV 16 -> Result (BV 16)
-bvF16Rem = liftF2 f16Rem
+f16Rem :: SF.RoundingMode -> BV.BV 16 -> BV.BV 16 -> SF.Result (BV.BV 16)
+f16Rem = liftF2 SF.f16Rem
 
-bvF16Sqrt :: RoundingMode -> BV 16 -> Result (BV 16)
-bvF16Sqrt = liftF1U f16Sqrt
+f16Sqrt :: SF.RoundingMode -> BV.BV 16 -> SF.Result (BV.BV 16)
+f16Sqrt = liftF1U SF.f16Sqrt
 
-bvF16Eq :: BV 16 -> BV 16 -> Result Bool
-bvF16Eq = liftF2Bool f16Eq
+f16Eq :: BV.BV 16 -> BV.BV 16 -> SF.Result Bool
+f16Eq = liftF2Bool SF.f16Eq
 
-bvF16Le :: BV 16 -> BV 16 -> Result Bool
-bvF16Le = liftF2Bool f16Le
+f16Le :: BV.BV 16 -> BV.BV 16 -> SF.Result Bool
+f16Le = liftF2Bool SF.f16Le
 
-bvF16Lt :: BV 16 -> BV 16 -> Result Bool
-bvF16Lt = liftF2Bool f16Lt
+f16Lt :: BV.BV 16 -> BV.BV 16 -> SF.Result Bool
+f16Lt = liftF2Bool SF.f16Lt
 
-bvF16EqSignaling :: BV 16 -> BV 16 -> Result Bool
-bvF16EqSignaling = liftF2Bool f16EqSignaling
+f16EqSignaling :: BV.BV 16 -> BV.BV 16 -> SF.Result Bool
+f16EqSignaling = liftF2Bool SF.f16EqSignaling
 
-bvF16LeQuiet :: BV 16 -> BV 16 -> Result Bool
-bvF16LeQuiet = liftF2Bool f16LeQuiet
+f16LeQuiet :: BV.BV 16 -> BV.BV 16 -> SF.Result Bool
+f16LeQuiet = liftF2Bool SF.f16LeQuiet
 
-bvF16LtQuiet :: BV 16 -> BV 16 -> Result Bool
-bvF16LtQuiet = liftF2Bool f16LtQuiet
+f16LtQuiet :: BV.BV 16 -> BV.BV 16 -> SF.Result Bool
+f16LtQuiet = liftF2Bool SF.f16LtQuiet
 
-bvF16IsSignalingNaN :: BV 16 -> Result Bool
-bvF16IsSignalingNaN = liftF1Bool f16IsSignalingNaN
+f16IsSignalingNaN :: BV.BV 16 -> SF.Result Bool
+f16IsSignalingNaN = liftF1Bool SF.f16IsSignalingNaN
 
 -- 32-bit operations
-bvF32RoundToInt :: RoundingMode -> BV 32 -> Result (BV 32)
-bvF32RoundToInt = liftF1U f32RoundToInt
+f32RoundToInt :: SF.RoundingMode -> BV.BV 32 -> SF.Result (BV.BV 32)
+f32RoundToInt = liftF1U SF.f32RoundToInt
 
-bvF32Add :: RoundingMode -> BV 32 -> BV 32 -> Result (BV 32)
-bvF32Add = liftF2 f32Add
+f32Add :: SF.RoundingMode -> BV.BV 32 -> BV.BV 32 -> SF.Result (BV.BV 32)
+f32Add = liftF2 SF.f32Add
 
-bvF32Sub :: RoundingMode -> BV 32 -> BV 32 -> Result (BV 32)
-bvF32Sub = liftF2 f32Sub
+f32Sub :: SF.RoundingMode -> BV.BV 32 -> BV.BV 32 -> SF.Result (BV.BV 32)
+f32Sub = liftF2 SF.f32Sub
 
-bvF32Mul :: RoundingMode -> BV 32 -> BV 32 -> Result (BV 32)
-bvF32Mul = liftF2 f32Mul
+f32Mul :: SF.RoundingMode -> BV.BV 32 -> BV.BV 32 -> SF.Result (BV.BV 32)
+f32Mul = liftF2 SF.f32Mul
 
-bvF32MulAdd :: RoundingMode -> BV 32 -> BV 32 -> BV 32 -> Result (BV 32)
-bvF32MulAdd = liftF3 f32MulAdd
+f32MulAdd :: SF.RoundingMode -> BV.BV 32 -> BV.BV 32 -> BV.BV 32 -> SF.Result (BV.BV 32)
+f32MulAdd = liftF3 SF.f32MulAdd
 
-bvF32Div :: RoundingMode -> BV 32 -> BV 32 -> Result (BV 32)
-bvF32Div = liftF2 f32Div
+f32Div :: SF.RoundingMode -> BV.BV 32 -> BV.BV 32 -> SF.Result (BV.BV 32)
+f32Div = liftF2 SF.f32Div
 
-bvF32Rem :: RoundingMode -> BV 32 -> BV 32 -> Result (BV 32)
-bvF32Rem = liftF2 f32Rem
+f32Rem :: SF.RoundingMode -> BV.BV 32 -> BV.BV 32 -> SF.Result (BV.BV 32)
+f32Rem = liftF2 SF.f32Rem
 
-bvF32Sqrt :: RoundingMode -> BV 32 -> Result (BV 32)
-bvF32Sqrt = liftF1U f32Sqrt
+f32Sqrt :: SF.RoundingMode -> BV.BV 32 -> SF.Result (BV.BV 32)
+f32Sqrt = liftF1U SF.f32Sqrt
 
-bvF32Eq :: BV 32 -> BV 32 -> Result Bool
-bvF32Eq = liftF2Bool f32Eq
+f32Eq :: BV.BV 32 -> BV.BV 32 -> SF.Result Bool
+f32Eq = liftF2Bool SF.f32Eq
 
-bvF32Le :: BV 32 -> BV 32 -> Result Bool
-bvF32Le = liftF2Bool f32Le
+f32Le :: BV.BV 32 -> BV.BV 32 -> SF.Result Bool
+f32Le = liftF2Bool SF.f32Le
 
-bvF32Lt :: BV 32 -> BV 32 -> Result Bool
-bvF32Lt = liftF2Bool f32Lt
+f32Lt :: BV.BV 32 -> BV.BV 32 -> SF.Result Bool
+f32Lt = liftF2Bool SF.f32Lt
 
-bvF32EqSignaling :: BV 32 -> BV 32 -> Result Bool
-bvF32EqSignaling = liftF2Bool f32EqSignaling
+f32EqSignaling :: BV.BV 32 -> BV.BV 32 -> SF.Result Bool
+f32EqSignaling = liftF2Bool SF.f32EqSignaling
 
-bvF32LeQuiet :: BV 32 -> BV 32 -> Result Bool
-bvF32LeQuiet = liftF2Bool f32LeQuiet
+f32LeQuiet :: BV.BV 32 -> BV.BV 32 -> SF.Result Bool
+f32LeQuiet = liftF2Bool SF.f32LeQuiet
 
-bvF32LtQuiet :: BV 32 -> BV 32 -> Result Bool
-bvF32LtQuiet = liftF2Bool f32LtQuiet
+f32LtQuiet :: BV.BV 32 -> BV.BV 32 -> SF.Result Bool
+f32LtQuiet = liftF2Bool SF.f32LtQuiet
 
-bvF32IsSignalingNaN :: BV 32 -> Result Bool
-bvF32IsSignalingNaN = liftF1Bool f32IsSignalingNaN
+f32IsSignalingNaN :: BV.BV 32 -> SF.Result Bool
+f32IsSignalingNaN = liftF1Bool SF.f32IsSignalingNaN
 
 -- 64-bit operations
-bvF64RoundToInt :: RoundingMode -> BV 64 -> Result (BV 64)
-bvF64RoundToInt = liftF1U f64RoundToInt
+f64RoundToInt :: SF.RoundingMode -> BV.BV 64 -> SF.Result (BV.BV 64)
+f64RoundToInt = liftF1U SF.f64RoundToInt
 
-bvF64Add :: RoundingMode -> BV 64 -> BV 64 -> Result (BV 64)
-bvF64Add = liftF2 f64Add
+f64Add :: SF.RoundingMode -> BV.BV 64 -> BV.BV 64 -> SF.Result (BV.BV 64)
+f64Add = liftF2 SF.f64Add
 
-bvF64Sub :: RoundingMode -> BV 64 -> BV 64 -> Result (BV 64)
-bvF64Sub = liftF2 f64Sub
+f64Sub :: SF.RoundingMode -> BV.BV 64 -> BV.BV 64 -> SF.Result (BV.BV 64)
+f64Sub = liftF2 SF.f64Sub
 
-bvF64Mul :: RoundingMode -> BV 64 -> BV 64 -> Result (BV 64)
-bvF64Mul = liftF2 f64Mul
+f64Mul :: SF.RoundingMode -> BV.BV 64 -> BV.BV 64 -> SF.Result (BV.BV 64)
+f64Mul = liftF2 SF.f64Mul
 
-bvF64MulAdd :: RoundingMode -> BV 64 -> BV 64 -> BV 64 -> Result (BV 64)
-bvF64MulAdd = liftF3 f64MulAdd
+f64MulAdd :: SF.RoundingMode -> BV.BV 64 -> BV.BV 64 -> BV.BV 64 -> SF.Result (BV.BV 64)
+f64MulAdd = liftF3 SF.f64MulAdd
 
-bvF64Div :: RoundingMode -> BV 64 -> BV 64 -> Result (BV 64)
-bvF64Div = liftF2 f64Div
+f64Div :: SF.RoundingMode -> BV.BV 64 -> BV.BV 64 -> SF.Result (BV.BV 64)
+f64Div = liftF2 SF.f64Div
 
-bvF64Rem :: RoundingMode -> BV 64 -> BV 64 -> Result (BV 64)
-bvF64Rem = liftF2 f64Rem
+f64Rem :: SF.RoundingMode -> BV.BV 64 -> BV.BV 64 -> SF.Result (BV.BV 64)
+f64Rem = liftF2 SF.f64Rem
 
-bvF64Sqrt :: RoundingMode -> BV 64 -> Result (BV 64)
-bvF64Sqrt = liftF1U f64Sqrt
+f64Sqrt :: SF.RoundingMode -> BV.BV 64 -> SF.Result (BV.BV 64)
+f64Sqrt = liftF1U SF.f64Sqrt
 
-bvF64Eq :: BV 64 -> BV 64 -> Result Bool
-bvF64Eq = liftF2Bool f64Eq
+f64Eq :: BV.BV 64 -> BV.BV 64 -> SF.Result Bool
+f64Eq = liftF2Bool SF.f64Eq
 
-bvF64Le :: BV 64 -> BV 64 -> Result Bool
-bvF64Le = liftF2Bool f64Le
+f64Le :: BV.BV 64 -> BV.BV 64 -> SF.Result Bool
+f64Le = liftF2Bool SF.f64Le
 
-bvF64Lt :: BV 64 -> BV 64 -> Result Bool
-bvF64Lt = liftF2Bool f64Lt
+f64Lt :: BV.BV 64 -> BV.BV 64 -> SF.Result Bool
+f64Lt = liftF2Bool SF.f64Lt
 
-bvF64EqSignaling :: BV 64 -> BV 64 -> Result Bool
-bvF64EqSignaling = liftF2Bool f64EqSignaling
+f64EqSignaling :: BV.BV 64 -> BV.BV 64 -> SF.Result Bool
+f64EqSignaling = liftF2Bool SF.f64EqSignaling
 
-bvF64LeQuiet :: BV 64 -> BV 64 -> Result Bool
-bvF64LeQuiet = liftF2Bool f64LeQuiet
+f64LeQuiet :: BV.BV 64 -> BV.BV 64 -> SF.Result Bool
+f64LeQuiet = liftF2Bool SF.f64LeQuiet
 
-bvF64LtQuiet :: BV 64 -> BV 64 -> Result Bool
-bvF64LtQuiet = liftF2Bool f64LtQuiet
+f64LtQuiet :: BV.BV 64 -> BV.BV 64 -> SF.Result Bool
+f64LtQuiet = liftF2Bool SF.f64LtQuiet
 
-bvF64IsSignalingNaN :: BV 64 -> Result Bool
-bvF64IsSignalingNaN = liftF1Bool f64IsSignalingNaN
+f64IsSignalingNaN :: BV.BV 64 -> SF.Result Bool
+f64IsSignalingNaN = liftF1Bool SF.f64IsSignalingNaN
 
 -- TODO: The following commented code outlines a strategy for unifying all floating
--- point ops into individual functions (so bvFAdd for 16-, 32-, and 64-bit
+-- point ops into individual functions (so fAdd for 16-, 32-, and 64-bit
 -- add). Since this probably isn't necessary for my purposes, and adds a lot of
 -- type-level cruft and overhead, I am abandoning it and opting for the simpler
 -- strategy of writing individual functions for the 16-, 32-, and 64-bit cases.
@@ -463,26 +465,26 @@ bvF64IsSignalingNaN = liftF1Bool f64IsSignalingNaN
 --   FloatWord Float64 = Word64
 
 -- data FloatBV (ft :: FloatType) where
---   FloatBV :: FloatTypeRepr ft -> BV (FloatWidth ft) -> FloatBV ft
+--   FloatBV :: FloatTypeRepr ft -> BV.BV (FloatWidth ft) -> FloatBV ft
 
--- bvBinaryOpFloat :: (RoundingMode -> Word16 -> Word16 -> Result Word16)
---                 -> (RoundingMode -> Word32 -> Word32 -> Result Word32)
---                 -> (RoundingMode -> Word64 -> Word64 -> Result Word64)
---                 -> RoundingMode -> FloatBV ft -> FloatBV ft -> Result (FloatBV ft)
--- bvBinaryOpFloat flop16 flop32 flop64 rm (FloatBV fRepr (BV wRepr x)) (FloatBV _ (BV _ y)) =
+-- bvBinaryOpFloat :: (SF.RoundingMode -> Word16 -> Word16 -> SF.Result Word16)
+--                 -> (SF.RoundingMode -> Word32 -> Word32 -> SF.Result Word32)
+--                 -> (SF.RoundingMode -> Word64 -> Word64 -> SF.Result Word64)
+--                 -> SF.RoundingMode -> FloatBV ft -> FloatBV ft -> SF.Result (FloatBV ft)
+-- bvBinaryOpFloat flop16 flop32 flop64 rm (FloatBV fRepr (BV.BV wRepr x)) (FloatBV _ (BV.BV _ y)) =
 --   case fRepr of
 --     Float16Repr ->
---       let Result wordVal flags = flop16 rm (fromIntegral x) (fromIntegral y)
---       in Result (FloatBV Float16Repr (BV wRepr (fromIntegral wordVal))) flags
+--       let SF.Result wordVal flags = flop16 rm (fromIntegral x) (fromIntegral y)
+--       in SF.Result (FloatBV Float16Repr (BV.BV wRepr (fromIntegral wordVal))) flags
 --     Float32Repr ->
---       let Result wordVal flags = flop32 rm (fromIntegral x) (fromIntegral y)
---       in Result (FloatBV Float32Repr (BV wRepr (fromIntegral wordVal))) flags
+--       let SF.Result wordVal flags = flop32 rm (fromIntegral x) (fromIntegral y)
+--       in SF.Result (FloatBV Float32Repr (BV.BV wRepr (fromIntegral wordVal))) flags
 --     Float64Repr ->
---       let Result wordVal flags = flop64 rm (fromIntegral x) (fromIntegral y)
---       in Result (FloatBV Float64Repr (BV wRepr (fromIntegral wordVal))) flags
+--       let SF.Result wordVal flags = flop64 rm (fromIntegral x) (fromIntegral y)
+--       in SF.Result (FloatBV Float64Repr (BV.BV wRepr (fromIntegral wordVal))) flags
 
--- bvAddF :: RoundingMode -> FloatBV ft -> FloatBV ft -> Result (FloatBV ft)
--- bvAddF = bvBinaryOpFloat f16Add f32Add f64Add
+-- bvAddF :: SF.RoundingMode -> FloatBV ft -> FloatBV ft -> SF.Result (FloatBV ft)
+-- bvAddF = bvBinaryOpFloat f16Add SF.f32Add SF.f64Add
 
 -- instance Show (FloatBitVector ft) where
 --   show (FloatBitVector bv) = show bv
