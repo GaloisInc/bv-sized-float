@@ -1,5 +1,5 @@
 name:                bv-sized-float
-version:             0.1.0
+version:             0.2.0
 category:            Bit Vectors
 synopsis:            Floating point operations and expressions for bv-sized
 -- description:
@@ -15,9 +15,8 @@ extra-source-files:  README.md
 
 library
   exposed-modules:     Data.BitVector.Sized.Float
-                       Data.BitVector.Sized.Float.App
   build-depends:       base >= 4.7 && < 5
-                     , bv-sized >= 0.7.0 && < 0.8
+                     , bv-sized >= 1.0.2 && < 1.0.3
                      , containers >= 0.5.10 && < 0.7
                      , mtl >= 2 && < 3
                      , parameterized-utils
