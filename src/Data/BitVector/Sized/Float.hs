@@ -115,6 +115,7 @@ module Data.BitVector.Sized.Float
 
 import qualified Data.BitVector.Sized as BV
 import Data.Int ( Int16, Int32, Int64 )
+import Data.Kind ( Type )
 import Data.Parameterized ( knownNat )
 import Data.Type.Equality
     ( type (:~:)(Refl), TestEquality(testEquality) )
@@ -122,12 +123,12 @@ import Data.Word ( Word16, Word32, Word64 )
 import GHC.TypeNats ( type (<=), KnownNat, Nat )
 import qualified SoftFloat as SF
 
-type family WordType (n :: Nat) :: * where
+type family WordType (n :: Nat) :: Type where
   WordType 16 = Word16
   WordType 32 = Word32
   WordType 64 = Word64
 
-type family IntType (n :: Nat) :: * where
+type family IntType (n :: Nat) :: Type where
   IntType 16 = Int16
   IntType 32 = Int32
   IntType 64 = Int64
